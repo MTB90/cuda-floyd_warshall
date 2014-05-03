@@ -22,7 +22,6 @@
 #define CMCPYDTH cudaMemcpyDeviceToHost
 
 // CONSTS for compute capability 2.0
-#define THREAD_WIDTH 1
 #define BLOCK_WIDTH 16
 #define WARP 	    32
 
@@ -170,7 +169,7 @@ template <int BLOCK_SIZE> __global__ void fw_kernel_phase_two(const unsigned int
 
 }
 
-/**Kernel for parallel Floyd Warshall algorithm on gpu compute of singly dependent block depend on the independent block
+/**Kernel for parallel Floyd Warshall algorithm on gpu compute of dependent block depend on the singly dependent blocks
 *
 * @param b number block of which is performed relaxation paths [v1, v2]
 * @param n number of vertices in the graph G:=(V,E), n := |V(G)|
