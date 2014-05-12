@@ -25,7 +25,8 @@
 #define BLOCK_WIDTH 16
 #define WARP 	    32
 
-const bool PRINT = true; 	// print graf d or not
+bool print = false; 	// print graf d or not
+bool debug = false;	// print more deatails to debug
 
 // MIN FUNCTION
 #define MIN(x, y) y + ((x - y) & ((x - y) >> (sizeof(int) * CHARBIT - 1)))
@@ -315,7 +316,26 @@ int main(int argc, char **argv)
 	unsigned int V;
 	unsigned int E;
 	unsigned int v1, v2, w; 
-	
+	int opt;
+
+	while ((opt = getopt (argc, argv, "pd")) != -1)
+	{
+		switch(opt)
+		{
+			case 'p':
+				print = true;
+				break;
+			case 'd':
+				debug = true;
+				break;
+			case '?':
+				fprintf (stderr, "Unknown option character `\\x%x'.\n", opt);
+				return 1;
+			default:
+			        abort ();
+		}
+	}
+
 	// Load number vertices of the graph |V(G)| and number edges of the graph |E(G)|
 	scanf("%d %d", &V, &E);
 		
@@ -328,9 +348,11 @@ int main(int argc, char **argv)
 	// Init Data for the graf G
 	memset(G, CHARINF, sizeof(int) * V * V);
 	
-	#ifdef DEBUG
-		print_graf(V, G);
-	#endif
+	if (debug)
+	{
+		fprintf(stdout, "Init data:\n");
+	       	print_graf(V, G);
+	}
 
 	// Load weight of the edges of the graph E(G)
 	REP(e, E)
@@ -342,13 +364,19 @@ int main(int argc, char **argv)
 	FOR (v, 0, V - 1)
 		G[v * V + v] = 0;
 
-	#ifdef DEBUG
+	if (debug)
+	{	
+		fprintf(stdout, "\nLoaded data:\n");
 		print_graf(V, G);
-	#endif
+	}
 
-	fw_gpu(V, G, d);
-	
-	if (PRINT) print_graf(V, d);
+  	fw_gpu(V, G, d);
+
+	if (print) 
+	{
+		fprintf(stdout, "\n\nResult:\n");
+		print_graf(V, d);
+	}
 
 	// Delete allocated memory 
 	free(G);
