@@ -2,6 +2,7 @@
 #include<stdlib.h>
 #include<string.h>
 #include<unistd.h>
+#include<time.h>
 
 // Helper definition
 #define VAR(v, i) __typeof(i) v=(i)
@@ -15,8 +16,8 @@
 #define CHARINF 63	   // 3F	
 #define CHARBIT 8
 
-bool print = false; 	// print graf d or not
-bool debug = false;	// print more deatails to debug
+bool gPrint = false; 	// print graf d or not
+bool gDebug = false;	// print more deatails to gDebug
 
 /** Floyd Warshall algorithm
 *
@@ -24,7 +25,7 @@ bool debug = false;	// print more deatails to debug
 * @param G is a the graph G:=(V,E)
 * @param d matrix of shortest paths d(G)
 */
-void fw(const unsigned int n, int *G, int *d)
+void fw(const unsigned int n, const int *G, int *d)
 {
 	memcpy (d, G, n * n * sizeof(int));
 	FOR(u, 0, n - 1)
@@ -70,13 +71,13 @@ int main(int argc, char **argv)
 		switch(opt)
 		{
 			case 'p':
-				print = true;
+				gPrint = true;
 				break;
 			case 'd':
-				debug = true;
+				gDebug = true;
 				break;
 			case '?':
-				fprintf (stderr, "Unknown option character `\\x%x'.\n", opt);
+				fprintf (stderr, "Unknown option character \n");
 				return 1;
 			default:
 			        abort ();
@@ -95,7 +96,7 @@ int main(int argc, char **argv)
 	// Init Data for the graf G
 	memset(G, CHARINF, sizeof(int) * V * V);
 	
-	if (debug)
+	if (gDebug)
 	{
 		fprintf(stdout, "Init data:\n");
 	       	print_graf(V, G);
@@ -111,16 +112,23 @@ int main(int argc, char **argv)
 	FOR (v, 0, V - 1)
 		G[v * V + v] = 0;
 
-	if (debug)
+	if (gPrint)
 	{	
 		fprintf(stdout, "\nLoaded data:\n");
 		print_graf(V, G);
 	}
 
+  	clock_t begin = clock();
+        
 	// Run Floyd Warshall
-  	fw(V, G, d);
+	fw(V, G, d);
+	
+      	clock_t end = clock();
+        double elapsedTime  = double(end - begin) * 1000 / CLOCKS_PER_SEC;
+	
+	printf ("Time : %f ms\n", elapsedTime);
 
-	if (print) 
+	if (gPrint) 
 	{
 		fprintf(stdout, "\n\nResult:\n");
 		print_graf(V, d);

@@ -25,8 +25,8 @@
 #define BLOCK_WIDTH 16
 #define WARP 	    32
 
-bool print = false; 	// print graf d or not
-bool debug = false;	// print more deatails to debug
+bool gPrint = false; 	// print graf d or not
+bool gDebug = false;	// print more deatails to debug
 
 /** Cuda handle error, if err is not success print error and line in code
 *
@@ -49,7 +49,7 @@ bool debug = false;	// print more deatails to debug
 __global__ void wake_gpu_kernel(int reps) 
 {
 	int idx = blockIdx.x * blockDim.x + threadIdx.x;
-	if (idx >= reps)return;
+	if (idx >= reps) return;
 }
 
 /**Kernel for parallel Floyd Warshall algorithm on gpu
@@ -77,7 +77,7 @@ __global__ void fw_kernel(const unsigned int u, const unsigned int n, int *d)
 * @param d matrix of shortest paths d(G)
 * @param opt define what version should be run
 */
-cudaError_t fw_gpu(const unsigned int n, int *G, int *d)
+cudaError_t fw_gpu(const unsigned int n, const int *G, int *d)
 {
 	int *dev_d = 0;
 	cudaError_t cudaStatus;
@@ -91,12 +91,13 @@ cudaError_t fw_gpu(const unsigned int n, int *G, int *d)
 	dim3 dimGrid((n - 1) / BLOCK_WIDTH + 1, (n - 1) / BLOCK_WIDTH + 1, 1); 
 	dim3 dimBlock(BLOCK_WIDTH, BLOCK_WIDTH, 1);
 
-	#ifdef DEBUG
+	if (gDebug) 
+	{
 		printf("|V| %d\n", n);
 		printf("Dim Grid:\nx - %d\ny -%d\nz - %d\n", dimGrid.x, dimGrid.y, dimGrid.z);
 		printf("Dim Block::\nx - %d\ny -%d\nz - %d\n", dimBlock.x, dimBlock.y, dimBlock.z);
-	#endif
-	
+	}
+
 	// Wake up gpu 
  	wake_gpu_kernel<<<1, dimBlock>>>(32);
   
@@ -126,11 +127,11 @@ cudaError_t fw_gpu(const unsigned int n, int *G, int *d)
     	cudaStatus = cudaGetLastError();
 	HANDLE_ERROR(cudaStatus);
 
-	// cudaDeviceSynchronize waits for the kernel to finish, and returns
-    	// any errors encountered during the launch.
-    	cudaStatus = cudaDeviceSynchronize();
+        // cudaDeviceSynchronize waits for the kernel to finish, and returns
+	// any errors encountered during the launch.
+	cudaStatus = cudaDeviceSynchronize();
 	HANDLE_ERROR(cudaStatus);
-
+	
 	cudaStatus = cudaMemcpy(d, dev_d, n * n * sizeof(int), CMCPYDTH);
 	HANDLE_ERROR(cudaStatus);
 
@@ -171,10 +172,10 @@ int main(int argc, char **argv)
 		switch(opt)
 		{
 			case 'p':
-				print = true;
+				gPrint = true;
 				break;
 			case 'd':
-				debug = true;
+				gDebug = true;
 				break;
 			case '?':
 				fprintf (stderr, "Unknown option character `\\x%x'.\n", opt);
@@ -196,7 +197,7 @@ int main(int argc, char **argv)
 	// Init Data for the graf G
 	memset(G, CHARINF, sizeof(int) * V * V);
 	
-	if (debug)
+	if (gDebug)
 	{
 		fprintf(stdout, "Init data:\n");
 	       	print_graf(V, G);
@@ -212,20 +213,37 @@ int main(int argc, char **argv)
 	FOR (v, 0, V - 1)
 		G[v * V + v] = 0;
 
-	if (debug)
+	if (gPrint)
 	{	
 		fprintf(stdout, "\nLoaded data:\n");
 		print_graf(V, G);
 	}
 
-  	fw_gpu(V, G, d);
+	// Initialize CUDA Event
+	cudaEvent_t start,stop;
+	float elapsedTime;
 
-	if (print) 
+	cudaEventCreate(&start);
+	cudaEventCreate(&stop);
+	cudaEventRecord(start,0);
+	
+	fw_gpu(V, G, d);
+	
+	// Finish recording
+	cudaEventRecord(stop,0);
+	cudaEventSynchronize(stop);
+	
+	// Calculate elasped time
+	cudaEventElapsedTime(&elapsedTime,start,stop);
+
+	if (gPrint) 
 	{
 		fprintf(stdout, "\n\nResult:\n");
 		print_graf(V, d);
 	}
-
+	
+	printf ("Time : %f ms\n", elapsedTime);
+	
 	// Delete allocated memory 
 	free(G);
 	free(d);
