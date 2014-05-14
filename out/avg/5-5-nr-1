@@ -1,0 +1,17 @@
+
+Result short path:
+0 INF 1130 INF 920 
+INF 0 INF INF INF 
+INF INF 0 INF INF 
+INF INF 359 0 726 
+INF INF 210 INF 0 
+
+
+Result predecessors:
+0 0 5 0 1 
+0 0 0 0 0 
+0 0 0 0 0 
+0 0 4 0 4 
+0 0 5 0 0 
+
+Time : 0.000003 s

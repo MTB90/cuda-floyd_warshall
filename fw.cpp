@@ -24,7 +24,7 @@ bool gDebug = false;	// print more deatails to gDebug
 * @param n number of vertices in the graph G:=(V,E), n := |V(G)|
 * @param G is a the graph G:=(V,E)
 * @param d matrix of shortest paths d(G)
-* @param p matrix of precedents p(G)
+* @param p matrix of predecessors  p(G)
 */
 void fw(const unsigned int n, const int *G, int *d, int *p)
 {
@@ -126,7 +126,7 @@ int main(int argc, char **argv)
 	// Copy data
 	memcpy (d, G, size * sizeof(int));
 	
-	if (gPrint)
+	if (gDebug)
 	{	
 		fprintf(stdout, "\nLoaded data:\n");
 		print_graf(V, G);
@@ -138,7 +138,7 @@ int main(int argc, char **argv)
 	fw(V, G, d, p);
 	
       	clock_t end = clock();
-        double elapsedTime  = double(end - begin) * 1000 / CLOCKS_PER_SEC;
+        double elapsedTime  = double(end - begin) / CLOCKS_PER_SEC;
 	
 	if (gPrint) 
 	{
@@ -148,11 +148,11 @@ int main(int argc, char **argv)
 	
 	if (gPrint) 
 	{
-		fprintf(stdout, "\nResult precedents:\n");
+		fprintf(stdout, "\nResult predecessors:\n");
 		print_graf(V, p);
 	}
 
-	printf ("Time : %f ms\n", elapsedTime);
+	printf ("Time : %f s\n", elapsedTime);
 	// Delete allocated memory 
 	free(G);
 	free(d);

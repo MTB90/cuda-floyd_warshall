@@ -366,7 +366,7 @@ int main(int argc, char **argv)
 	FOR (v, 0, V - 1)
 		G[v * V + v] = 0;
 
-	if (gPrint)
+	if (gDebug)
 	{	
 		fprintf(stdout, "\nLoaded data:\n");
 		print_graf(V, G);
@@ -401,7 +401,8 @@ int main(int argc, char **argv)
 		print_graf(V, d);
 	}
 
-	printf ("Time : %f ms\n", elapsedTime);
+	elapsedTime /= 1000;
+	printf ("Time : %f s\n", elapsedTime);
 	
 	// Delete allocated memory 
 	free(G);

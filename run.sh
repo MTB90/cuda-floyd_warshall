@@ -6,7 +6,7 @@ usage ()
 	echo "-i <input file> is required"
 	echo "-t <file with multi tests> is required or -f"
 	echo "-f <file with single test> is required or -t"
-	echo "-s <save output to file>"
+	echo "-o <directory where it will be saved results>"
 	echo "-d this print all information"
 	echo "-p this print data in and out"
 	exit -1;
@@ -14,15 +14,15 @@ usage ()
 
 pflag=""
 dflag=""
-sflag=""
+o=""
 
-while getopts ":i:t:f:spd" o; do
-	case "${o}" in
+while getopts ":i:t:f:o:pd" opt; do
+	case "${opt}" in
 		i)
 			input=${OPTARG}
 	                ;;
-		s)
-			sflag="-s"
+		o)
+			o=${OPTARG}
 			;;
 	        t)
 			t=${OPTARG}
@@ -93,10 +93,10 @@ if [[ ! -z "${t}" ]]; then
 	while read line           
 	do
 		echo "Begin test - $line"	
-		if [ "${sflag}" == "" ]; then
+		if [ "${o}" == "" ]; then
 			./$output $pflag $dflag < $dir/$line
 		else
-			./$output $pflag $dflag < $dir/$line > "${line%*.}.out"
+			./$output $pflag $dflag < $dir/$line > "$o/$line"
 		fi
 		echo "End test - $line"
 		echo
@@ -108,10 +108,10 @@ fi
 # IF run single test
 base=$(basename $f)
 echo "Begin test - $base" 
-if [ "${sflag}" == "" ]; then
+if [ "${o}" == "" ]; then
 	./$output $pflag $dflag < $f
 else
-	./$output $pflag $dflag < $f > "${base%*.}.out"
+	./$output $pflag $dflag < $f > "$o/$base"
 fi
 echo "End test - $base"
 
