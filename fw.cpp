@@ -57,6 +57,7 @@ void print_graf(const unsigned int n, const int *G)
 		}
 		printf("\n");
 	}
+	printf("\n");
 }
 
 int main(int argc, char **argv)
@@ -98,7 +99,7 @@ int main(int argc, char **argv)
 	
 	if (gDebug)
 	{
-		fprintf(stdout, "Init data:\n");
+		fprintf(stdout, "\nInit data:\n");
 	       	print_graf(V, G);
 	}
 
@@ -126,14 +127,13 @@ int main(int argc, char **argv)
       	clock_t end = clock();
         double elapsedTime  = double(end - begin) * 1000 / CLOCKS_PER_SEC;
 	
-	printf ("Time : %f ms\n", elapsedTime);
-
 	if (gPrint) 
 	{
-		fprintf(stdout, "\n\nResult:\n");
+		fprintf(stdout, "\nResult:\n");
 		print_graf(V, d);
 	}
-
+	
+	printf ("Time : %f ms\n", elapsedTime);
 	// Delete allocated memory 
 	free(G);
 	free(d);

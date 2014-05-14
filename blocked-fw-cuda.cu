@@ -245,8 +245,8 @@ cudaError_t fw_gpu(const unsigned int n, const int *G, int *d)
 	if (gDebug) 
 	{
 		printf("|V| %d\n", n);
-		printf("Dim Grid:\nx - %d\ny -%d\nz - %d\n", dimGridP3.x, dimGridP3.y, dimGridP3.z);
-		printf("Dim Block::\nx - %d\ny -%d\nz - %d\n", dimBlock.x, dimBlock.y, dimBlock.z);
+		printf("Dim Grid:\nx - %d\ny - %d\nz - %d\n", dimGridP3.x, dimGridP3.y, dimGridP3.z);
+		printf("Dim Block::\nx - %d\ny - %d\nz - %d\n", dimBlock.x, dimBlock.y, dimBlock.z);
 	}
 	
 	// Wake up gpu 
@@ -310,6 +310,7 @@ void print_graf(const unsigned int n, const int *G)
 		}
 		printf("\n");
 	}
+	printf("\n");
 }
 
 int main(int argc, char **argv)
@@ -351,7 +352,7 @@ int main(int argc, char **argv)
 	
 	if (gDebug)
 	{
-		fprintf(stdout, "Init data:\n");
+		fprintf(stdout, "\nInit data:\n");
 	       	print_graf(V, G);
 	}
 
@@ -394,14 +395,14 @@ int main(int argc, char **argv)
 		print_graf(V, d);
 	}
 	
-	printf ("Time : %f ms\n", elapsedTime);
-
 	if (gPrint) 
 	{
-		fprintf(stdout, "\n\nResult:\n");
+		fprintf(stdout, "\nResult:\n");
 		print_graf(V, d);
 	}
 
+	printf ("Time : %f ms\n", elapsedTime);
+	
 	// Delete allocated memory 
 	free(G);
 	free(d);
