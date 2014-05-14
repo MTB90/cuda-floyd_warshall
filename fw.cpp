@@ -16,7 +16,7 @@
 #define CHARINF 63	   // 3F	
 #define CHARBIT 8
 
-bool gPrint = false; 	// print graf d or not
+bool gPrint = false; 	// print graf d and p or not
 bool gDebug = false;	// print more deatails to gDebug
 
 /** Floyd Warshall algorithm
@@ -24,17 +24,24 @@ bool gDebug = false;	// print more deatails to gDebug
 * @param n number of vertices in the graph G:=(V,E), n := |V(G)|
 * @param G is a the graph G:=(V,E)
 * @param d matrix of shortest paths d(G)
+* @param p matrix of precedents p(G)
 */
-void fw(const unsigned int n, const int *G, int *d)
+void fw(const unsigned int n, const int *G, int *d, int *p)
 {
-	memcpy (d, G, n * n * sizeof(int));
+	int newPath = 0;
+	int oldPath = 0;
+
 	FOR(u, 0, n - 1)
 		FOR(v1, 0, n - 1)
 			FOR(v2, 0, n - 1)
 			{
-				int newPath = d[v1 * n + u] + d[u * n + v2];
-				int oldPath = d[v1 * n + v2];
-				d[v1 * n + v2] = ( oldPath > newPath) ? newPath : oldPath;
+				newPath = d[v1 * n + u] + d[u * n + v2];
+				oldPath = d[v1 * n + v2];
+				if (oldPath > newPath) 
+				{
+					d[v1 * n + v2] = newPath;
+					p[v1 * n + v2] = p[u * n + v2];
+				}
 			}
 }
 
@@ -93,10 +100,12 @@ int main(int argc, char **argv)
 	
 	int *G = (int *) malloc (sizeof(int) * size);
 	int *d = (int *) malloc (sizeof(int) * size);
-	
+	int *p = (int *) malloc (sizeof(int) * size);
+
 	// Init Data for the graf G
-	memset(G, CHARINF, sizeof(int) * V * V);
-	
+	memset(G, CHARINF, sizeof(int) * size);
+	memset(p, 0, sizeof(int) * size);
+
 	if (gDebug)
 	{
 		fprintf(stdout, "\nInit data:\n");
@@ -108,11 +117,15 @@ int main(int argc, char **argv)
 	{
 		scanf("%d %d %d", &v1, &v2, &w);
 		G[v1 * V + v2] = w;
+		p[v1 * V + v2] = v1 != v2 ? v1 + 1: 0;
 	}
 
 	FOR (v, 0, V - 1)
 		G[v * V + v] = 0;
 
+	// Copy data
+	memcpy (d, G, size * sizeof(int));
+	
 	if (gPrint)
 	{	
 		fprintf(stdout, "\nLoaded data:\n");
@@ -122,17 +135,23 @@ int main(int argc, char **argv)
   	clock_t begin = clock();
         
 	// Run Floyd Warshall
-	fw(V, G, d);
+	fw(V, G, d, p);
 	
       	clock_t end = clock();
         double elapsedTime  = double(end - begin) * 1000 / CLOCKS_PER_SEC;
 	
 	if (gPrint) 
 	{
-		fprintf(stdout, "\nResult:\n");
+		fprintf(stdout, "\nResult short path:\n");
 		print_graf(V, d);
 	}
 	
+	if (gPrint) 
+	{
+		fprintf(stdout, "\nResult precedents:\n");
+		print_graf(V, p);
+	}
+
 	printf ("Time : %f ms\n", elapsedTime);
 	// Delete allocated memory 
 	free(G);
