@@ -1,0 +1,17 @@
+
+Result short path:
+0 979 INF 215 INF 
+787 0 INF 1002 INF 
+621 1600 0 472 INF 
+INF INF INF 0 INF 
+1058 2037 437 745 0 
+
+
+Result predecessors:
+-1 0 -1 0 -1 
+1 -1 -1 0 -1 
+2 0 -1 2 -1 
+-1 -1 -1 -1 -1 
+2 0 4 4 -1 
+
+Time : 0.000002 s

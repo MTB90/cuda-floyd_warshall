@@ -214,7 +214,7 @@ int main(int argc, char **argv)
 	int *p = (int *) malloc (sizeof(int) * size);
 
 	// Init Data for the graph G and p
-	memset(G, CHARINF, sizeof(int) * V * V);
+	memset(G, CHARINF, sizeof(int) * size);
 	memset(p, -1, sizeof(int) * size);
 
 	if (gDebug)
@@ -257,7 +257,6 @@ int main(int argc, char **argv)
 	
 	// Calculate elasped time
 	cudaEventElapsedTime(&elapsedTime,start,stop);
-	elapsedTime /= 1000;
 
 	if (gPrint) 
 	{
@@ -270,11 +269,14 @@ int main(int argc, char **argv)
 		fprintf(stdout, "\nResult predecessors:\n");
 		print_graph(V, p);
 	}
-
+	
+	elapsedTime /= 1000;
 	printf ("Time : %f s\n", elapsedTime);
+	
 	// Delete allocated memory 
 	free(G);
 	free(d);
+	free(p);
 
 	return 0;
 }
