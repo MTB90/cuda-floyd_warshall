@@ -64,19 +64,22 @@ fi
 ext=${input#*.}
 output="${input%.*}.out"
 
-echo 
-echo "Compile file $input output $output"
-case "$ext" in
-        c) 	echo "C"
-		gcc $input -o $output
+if [[ ! -f $output ]]; then
+	echo "File $output does not exist."
+		
+	echo "Compile file $input output $output"
+	case "$ext" in
+        	c) 	echo "C"
+			gcc $input -o $output
+          		;;
+        	cpp) 	echo "C++"
+			g++ $input -o $output
           	;;
-        cpp) 	echo "C++"
-		g++ $input -o $output
-          ;;
-        cu) 	echo "Cuda"
-		nvcc -arch=sm_20 $input -o $output
-	  ;;
-esac
+        	cu)	echo "Cuda"
+			nvcc -arch=sm_20 $input -o $output
+	  	;;
+	esac
+fi
 
 printf '\n################ Run test ##############\n\n'
 

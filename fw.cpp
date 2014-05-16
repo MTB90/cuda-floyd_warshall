@@ -16,7 +16,7 @@
 #define CHARINF 63	   // 3F	
 #define CHARBIT 8
 
-bool gPrint = false; 	// print graf d and p or not
+bool gPrint = false; 	// print graph d and p or not
 bool gDebug = false;	// print more deatails to gDebug
 
 /** Floyd Warshall algorithm
@@ -46,12 +46,12 @@ void fw(const unsigned int n, const int *G, int *d, int *p)
 }
 
 /**
-* Print graf G as a matrix
+* Print graph G as a matrix
 *
 * @param n number of vertices in the graph G:=(V,E), n := |V(G)|
 * @param G is a the graph G:=(V,E)
 */
-void print_graf(const unsigned int n, const int *G)
+void print_graph(const unsigned int n, const int *G)
 {
 	FOR(v1, 0, n - 1)
 	{
@@ -95,21 +95,21 @@ int main(int argc, char **argv)
 	// Load number vertices of the graph |V(G)| and number edges of the graph |E(G)|
 	scanf("%d %d", &V, &E);
 		
-	// Alloc host data for G - graf, d - matrix of shortest paths
+	// Alloc host data for G - graph, d - matrix of shortest paths
 	unsigned int size = V * V;
 	
 	int *G = (int *) malloc (sizeof(int) * size);
 	int *d = (int *) malloc (sizeof(int) * size);
 	int *p = (int *) malloc (sizeof(int) * size);
 
-	// Init Data for the graf G
+	// Init Data for the graph G and p
 	memset(G, CHARINF, sizeof(int) * size);
-	memset(p, 0, sizeof(int) * size);
+	memset(p, -1, sizeof(int) * size);
 
 	if (gDebug)
 	{
 		fprintf(stdout, "\nInit data:\n");
-	       	print_graf(V, G);
+	       	print_graph(V, G);
 	}
 
 	// Load weight of the edges of the graph E(G)
@@ -117,7 +117,7 @@ int main(int argc, char **argv)
 	{
 		scanf("%d %d %d", &v1, &v2, &w);
 		G[v1 * V + v2] = w;
-		p[v1 * V + v2] = v1 != v2 ? v1 + 1: 0;
+		p[v1 * V + v2] = v1 != v2 ? v1: -1;
 	}
 
 	FOR (v, 0, V - 1)
@@ -129,7 +129,7 @@ int main(int argc, char **argv)
 	if (gDebug)
 	{	
 		fprintf(stdout, "\nLoaded data:\n");
-		print_graf(V, G);
+		print_graph(V, G);
 	}
 
   	clock_t begin = clock();
@@ -143,13 +143,13 @@ int main(int argc, char **argv)
 	if (gPrint) 
 	{
 		fprintf(stdout, "\nResult short path:\n");
-		print_graf(V, d);
+		print_graph(V, d);
 	}
 	
 	if (gPrint) 
 	{
 		fprintf(stdout, "\nResult predecessors:\n");
-		print_graf(V, p);
+		print_graph(V, p);
 	}
 
 	printf ("Time : %f s\n", elapsedTime);

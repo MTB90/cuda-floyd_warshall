@@ -25,7 +25,7 @@
 #define BLOCK_WIDTH 16
 #define WARP 	    32
 
-bool gPrint = false; 	// print graf d or not
+bool gPrint = false; 	// print graph d or not
 bool gDebug = false;	// print more deatails to debug
 
 /** Cuda handle error, if err is not success print error and line in code
@@ -57,16 +57,22 @@ __global__ void wake_gpu_kernel(int reps)
 * @param u number vertex of which is performed relaxation paths [v1, v2]
 * @param n number of vertices in the graph G:=(V,E), n := |V(G)|
 * @param d matrix of shortest paths d(G)
+* @param p matrix of predecessors p(G)
 */
-__global__ void fw_kernel(const unsigned int u, const unsigned int n, int *d)
+__global__ void fw_kernel(const unsigned int u, const unsigned int n, int *d, int *p)
 {
 	int v1 = blockDim.y * blockIdx.y + threadIdx.y;
 	int v2 = blockDim.x * blockIdx.x + threadIdx.x;
-
+	
 	if (v1 < n && v2 < n) 
 	{
-		d[v1 * n + v2] = (d[v1 * n + v2] >  d[v1 * n + u] + d[u * n + v2]) ?  
-				 d[v1 * n + u] + d[u * n + v2] : d[v1 * n + v2];
+		int newPath = d[v1 * n + u] + d[u * n + v2];
+		int oldPath = d[v1 * n + v2];
+		if (oldPath > newPath)
+		{
+			d[v1 * n + v2] = newPath;
+			p[v1 * n + v2] = p[u * n + v2];		
+		}
 	}
 }
 
@@ -75,11 +81,12 @@ __global__ void fw_kernel(const unsigned int u, const unsigned int n, int *d)
 * @param n number of vertices in the graph G:=(V,E), n := |V(G)|
 * @param G is a the graph G:=(V,E)
 * @param d matrix of shortest paths d(G)
-* @param opt define what version should be run
+* @param p matrix of predecessors p(G)
 */
-cudaError_t fw_gpu(const unsigned int n, const int *G, int *d)
+void fw_gpu(const unsigned int n, const int *G, int *d, int *p)
 {
 	int *dev_d = 0;
+	int *dev_p = 0;
 	cudaError_t cudaStatus;
 	cudaStream_t cpyStream;
 
@@ -98,20 +105,22 @@ cudaError_t fw_gpu(const unsigned int n, const int *G, int *d)
 		printf("Dim Block::\nx - %d\ny - %d\nz - %d\n", dimBlock.x, dimBlock.y, dimBlock.z);
 	}
 
-	// Wake up gpu 
- 	wake_gpu_kernel<<<1, dimBlock>>>(32);
-  
 	// Create new stream to copy data	
 	cudaStatus = cudaStreamCreate(&cpyStream);
 	HANDLE_ERROR(cudaStatus);
 
-	// Allocate GPU buffers for matrix of shortest paths d(G)
+	// Allocate GPU buffers for matrix of shortest paths d(G) and predecessors p(G)
 	cudaStatus =  cudaMalloc((void**)&dev_d, n * n * sizeof(int));
 	HANDLE_ERROR(cudaStatus);
+	cudaStatus =  cudaMalloc((void**)&dev_p, n * n * sizeof(int));
+	HANDLE_ERROR(cudaStatus);
+	
+	// Wake up gpu
+	wake_gpu_kernel<<<1, dimBlock>>>(32);
 
-        // Copy input vectors from host memory to GPU buffers.
+        // Copy input from host memory to GPU buffers.
         cudaStatus = cudaMemcpyAsync(dev_d, G, n * n * sizeof(int), CMCPYHTD, cpyStream);
-        HANDLE_ERROR(cudaStatus);
+	cudaStatus = cudaMemcpyAsync(dev_p, p, n * n * sizeof(int), CMCPYHTD, cpyStream);
 
         // cudaDeviceSynchronize waits for the kernel to finish, and returns
         cudaStatus = cudaDeviceSynchronize();
@@ -120,7 +129,7 @@ cudaError_t fw_gpu(const unsigned int n, const int *G, int *d)
 	cudaFuncSetCacheConfig(fw_kernel, cudaFuncCachePreferL1 );
 	FOR(u, 0, n - 1) 
 	{
-		fw_kernel<<<dimGrid, dimBlock>>>(u, n, dev_d);
+		fw_kernel<<<dimGrid, dimBlock>>>(u, n, dev_d, dev_p);
 	}
 
 	// Check for any errors launching the kernel
@@ -135,17 +144,25 @@ cudaError_t fw_gpu(const unsigned int n, const int *G, int *d)
 	cudaStatus = cudaMemcpy(d, dev_d, n * n * sizeof(int), CMCPYDTH);
 	HANDLE_ERROR(cudaStatus);
 
+	cudaStatus = cudaMemcpy(p, dev_p, n * n * sizeof(int), CMCPYDTH);
+	HANDLE_ERROR(cudaStatus);
+
 	cudaStatus = cudaFree(dev_d);
-	return cudaStatus;
+	HANDLE_ERROR(cudaStatus);
+
+	cudaStatus = cudaFree(dev_p);
+	HANDLE_ERROR(cudaStatus);
+
+	return;
 }
 
 /**
-* Print graf G as a matrix
+* Print graph G as a matrix
 *
 * @param n number of vertices in the graph G:=(V,E), n := |V(G)|
 * @param G is a the graph G:=(V,E)
 */
-void print_graf(const unsigned int n, const int *G)
+void print_graph(const unsigned int n, const int *G)
 {
 	FOR(v1, 0, n - 1)
 	{
@@ -189,19 +206,21 @@ int main(int argc, char **argv)
 	// Load number vertices of the graph |V(G)| and number edges of the graph |E(G)|
 	scanf("%d %d", &V, &E);
 		
-	// Alloc host data for G - graf, d - matrix of shortest paths
+	// Alloc host data for G - graph, d - matrix of shortest paths
 	unsigned int size = V * V;
 	
 	int *G = (int *) malloc (sizeof(int) * size);
 	int *d = (int *) malloc (sizeof(int) * size);
-	
-	// Init Data for the graf G
+	int *p = (int *) malloc (sizeof(int) * size);
+
+	// Init Data for the graph G and p
 	memset(G, CHARINF, sizeof(int) * V * V);
-	
+	memset(p, -1, sizeof(int) * size);
+
 	if (gDebug)
 	{
 		fprintf(stdout, "\nInit data:\n");
-	       	print_graf(V, G);
+	       	print_graph(V, G);
 	}
 
 	// Load weight of the edges of the graph E(G)
@@ -209,6 +228,8 @@ int main(int argc, char **argv)
 	{
 		scanf("%d %d %d", &v1, &v2, &w);
 		G[v1 * V + v2] = w;
+		if (v1 != v2)
+			 p[v1 * V + v2] = v1;
 	}
 
 	FOR (v, 0, V - 1)
@@ -217,7 +238,7 @@ int main(int argc, char **argv)
 	if (gDebug)
 	{	
 		fprintf(stdout, "\nLoaded data:\n");
-		print_graf(V, G);
+		print_graph(V, G);
 	}
 
 	// Initialize CUDA Event
@@ -228,7 +249,7 @@ int main(int argc, char **argv)
 	cudaEventCreate(&stop);
 	cudaEventRecord(start,0);
 	
-	fw_gpu(V, G, d);
+	fw_gpu(V, G, d, p);
 	
 	// Finish recording
 	cudaEventRecord(stop,0);
@@ -236,16 +257,21 @@ int main(int argc, char **argv)
 	
 	// Calculate elasped time
 	cudaEventElapsedTime(&elapsedTime,start,stop);
+	elapsedTime /= 1000;
 
 	if (gPrint) 
 	{
-		fprintf(stdout, "\nResult:\n");
-		print_graf(V, d);
+		fprintf(stdout, "\nResult short path:\n");
+		print_graph(V, d);
 	}
 
-	elapsedTime /= 1000;
+        if (gPrint)
+	{
+		fprintf(stdout, "\nResult predecessors:\n");
+		print_graph(V, p);
+	}
+
 	printf ("Time : %f s\n", elapsedTime);
-	
 	// Delete allocated memory 
 	free(G);
 	free(d);
