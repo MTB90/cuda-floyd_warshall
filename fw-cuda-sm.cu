@@ -63,8 +63,8 @@ template <int BLOCK_SIZE> __global__ void fw_kernel(const unsigned int u, const 
 {
 	int v1 = blockDim.y * blockIdx.y + threadIdx.y;
 	int v2 = blockDim.x * blockIdx.x + threadIdx.x;
-	int oldValue; 
-	int newValue;
+	int oldPath; 
+	int newPath;
 
 	__shared__ int vu[BLOCK_SIZE]; 
 	__shared__ int uv[BLOCK_SIZE];
@@ -72,7 +72,7 @@ template <int BLOCK_SIZE> __global__ void fw_kernel(const unsigned int u, const 
 
 	if (v1 < n && v2 < n)
 	{
-		oldValue = d[v1 * n + v2];
+		oldPath = d[v1 * n + v2];
 		if (threadIdx.y == 0) 
 		{
 			uv[threadIdx.x] = d[u * n + v2];
@@ -90,8 +90,8 @@ template <int BLOCK_SIZE> __global__ void fw_kernel(const unsigned int u, const 
 
 	if (v1 < n && v2 < n) 
 	{
-		newValue = vu[threadIdx.y] + uv[threadIdx.x];
-		if (oldPaht > newPath)
+		newPath = vu[threadIdx.y] + uv[threadIdx.x];
+		if (oldPath > newPath)
 		{
 			d[v1 * n + v2] = newPath;
 			p[v1 * n + v2] = sp[threadIdx.x];
@@ -106,7 +106,7 @@ template <int BLOCK_SIZE> __global__ void fw_kernel(const unsigned int u, const 
 * @param d matrix of shortest paths d(G)
 * @param p matrix of predecessors p(G)
 */
-void fw_gpu(const unsigned int n, const int *G, int *d)
+void fw_gpu(const unsigned int n, const int *G, int *d, int *p)
 {
 	int *dev_d = 0;
 	int *dev_p = 0;
@@ -185,7 +185,7 @@ void fw_gpu(const unsigned int n, const int *G, int *d)
 * @param n number of vertices in the graph G:=(V,E), n := |V(G)|
 * @param G is a the graph G:=(V,E)
 */
-void print_graf(const unsigned int n, const int *G)
+void print_graph(const unsigned int n, const int *G)
 {
 	FOR(v1, 0, n - 1)
 	{
@@ -243,7 +243,7 @@ int main(int argc, char **argv)
 	if (gDebug)
 	{
 		fprintf(stdout, "\nInit data:\n");
-	       	print_graf(V, G);
+	       	print_graph(V, G);
 	}
 
 	// Load weight of the edges of the graph E(G)
@@ -261,7 +261,7 @@ int main(int argc, char **argv)
 	if (gDebug)
 	{	
 		fprintf(stdout, "\nLoaded data:\n");
-		print_graf(V, G);
+		print_graph(V, G);
 	}
  
 	// Initialize CUDA Event
@@ -272,7 +272,7 @@ int main(int argc, char **argv)
 	cudaEventCreate(&stop);
 	cudaEventRecord(start,0);
 	
-	fw_gpu(V, G, d);
+	fw_gpu(V, G, d, p);
 	
 	// Finish recording
 	cudaEventRecord(stop,0);
@@ -284,7 +284,7 @@ int main(int argc, char **argv)
 	if (gPrint) 
 	{
 		fprintf(stdout, "\nResult short path:\n");
-		print_graf(V, d);
+		print_graph(V, d);
 	}
 
         if (gPrint)
