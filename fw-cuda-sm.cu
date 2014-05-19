@@ -18,6 +18,7 @@
 #define INF 	1061109567 // 3F 3F 3F 3F
 #define CHARINF 63	   // 3F	
 #define CHARBIT 8
+#define NONE 	-1
 #define CMCPYHTD cudaMemcpyHostToDevice
 #define CMCPYDTH cudaMemcpyDeviceToHost
 
@@ -59,7 +60,7 @@ __global__ void wake_gpu_kernel(int reps)
 * @param d matrix of shortest paths d(G)
 * @param p matrix of predecessors p(G)
 */
-template <int BLOCK_SIZE> __global__ void fw_kernel(const unsigned int u, const unsigned int n, int *d, int *p)
+template <int BLOCK_SIZE> __global__ void fw_kernel(const unsigned int u, const unsigned int n, int * const d, int * const p)
 {
 	int v1 = blockDim.y * blockIdx.y + threadIdx.y;
 	int v2 = blockDim.x * blockIdx.x + threadIdx.x;
@@ -106,7 +107,7 @@ template <int BLOCK_SIZE> __global__ void fw_kernel(const unsigned int u, const 
 * @param d matrix of shortest paths d(G)
 * @param p matrix of predecessors p(G)
 */
-void fw_gpu(const unsigned int n, const int *G, int *d, int *p)
+void fw_gpu(const unsigned int n, const int * const G, int * const d, int * const p)
 {
 	int *dev_d = 0;
 	int *dev_p = 0;
@@ -185,7 +186,7 @@ void fw_gpu(const unsigned int n, const int *G, int *d, int *p)
 * @param n number of vertices in the graph G:=(V,E), n := |V(G)|
 * @param G is a the graph G:=(V,E)
 */
-void print_graph(const unsigned int n, const int *G)
+void print_graph(const unsigned int n, const int * const G)
 {
 	FOR(v1, 0, n - 1)
 	{
@@ -238,7 +239,7 @@ int main(int argc, char **argv)
 
 	// Init Data for the graf G
 	memset(G, CHARINF, sizeof(int) * size);
-	memset(p, -1, sizeof(int) * size);
+	memset(p, NONE, sizeof(int) * size);
 
 	if (gDebug)
 	{

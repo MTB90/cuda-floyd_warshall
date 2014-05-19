@@ -13,6 +13,7 @@
 
 // CONSTS
 #define INF 	1061109567 // 3F 3F 3F 3F
+#define NONE 	-1
 #define CHARINF 63	   // 3F	
 #define CHARBIT 8
 
@@ -26,7 +27,7 @@ bool gDebug = false;	// print more deatails to gDebug
 * @param d matrix of shortest paths d(G)
 * @param p matrix of predecessors  p(G)
 */
-void fw(const unsigned int n, const int *G, int *d, int *p)
+void fw(const unsigned int n, const int * const G, int * const d, int * const p)
 {
 	int newPath = 0;
 	int oldPath = 0;
@@ -51,7 +52,7 @@ void fw(const unsigned int n, const int *G, int *d, int *p)
 * @param n number of vertices in the graph G:=(V,E), n := |V(G)|
 * @param G is a the graph G:=(V,E)
 */
-void print_graph(const unsigned int n, const int *G)
+void print_graph(const unsigned int n, const int * const G)
 {
 	FOR(v1, 0, n - 1)
 	{
@@ -104,7 +105,7 @@ int main(int argc, char **argv)
 
 	// Init Data for the graph G and p
 	memset(G, CHARINF, sizeof(int) * size);
-	memset(p, -1, sizeof(int) * size);
+	memset(p, NONE, sizeof(int) * size);
 
 	if (gDebug)
 	{
@@ -117,7 +118,7 @@ int main(int argc, char **argv)
 	{
 		scanf("%d %d %d", &v1, &v2, &w);
 		G[v1 * V + v2] = w;
-		p[v1 * V + v2] = v1 != v2 ? v1: -1;
+		p[v1 * V + v2] = v1 != v2 ? v1: NONE;
 	}
 
 	FOR (v, 0, V - 1)
