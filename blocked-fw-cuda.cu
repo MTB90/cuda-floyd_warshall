@@ -23,6 +23,7 @@
 #define CMCPYDTH cudaMemcpyDeviceToHost
 
 // CONSTS for compute capability 2.0
+#define THREAD_WIDTH 2
 #define BLOCK_WIDTH 16
 #define WARP 	    32
 
@@ -239,74 +240,81 @@ template <int BLOCK_SIZE> __global__ void fw_kernel_phase_two(const unsigned int
 * @param p matrix of predecessors p(G)
 */
 
-template <int BLOCK_SIZE> __global__ void fw_kernel_phase_three(const unsigned int block, const unsigned int n, int * const d, int * const p)
+template <int BLOCK_SIZE, int THREAD_SIZE> __global__ void fw_kernel_phase_three(const unsigned int block, const unsigned int n, int * const d, int * const p)
 {
 	if (blockIdx.x == block || blockIdx.y == block) return ;
 	int newPath;
 	int path;
 	int predecessor;
 
-	int tx = threadIdx.x;
-	int ty = threadIdx.y;
+	int tx = threadIdx.x * THREAD_SIZE;
+	int ty = threadIdx.y * THREAD_SIZE;
 
-	int v1 = blockDim.y * blockIdx.y + ty;
-	int v2 = blockDim.x * blockIdx.x + tx;
+	int v1 = blockDim.y * blockIdx.y * THREAD_SIZE + ty;
+	int v2 = blockDim.x * blockIdx.x * THREAD_SIZE + tx;
 
-	int v1Row = BLOCK_SIZE * block + ty;
+	int v1Row = BLOCK_SIZE * block * THREAD_SIZE + ty;
 	int v2Row = v2;
 	
 	int v1Col = v1;
-	int v2Col = BLOCK_SIZE * block + tx;
+	int v2Col = BLOCK_SIZE * block * THREAD_SIZE + tx;
 	
-	__shared__ int primaryRow_d[BLOCK_SIZE][BLOCK_SIZE];
-	__shared__ int primaryCol_d[BLOCK_SIZE][BLOCK_SIZE];
-        
-	__shared__ int primaryRow_p[BLOCK_SIZE][BLOCK_SIZE];
+	__shared__ int primaryRow_d[BLOCK_SIZE * THREAD_SIZE][BLOCK_SIZE * THREAD_SIZE];
+	__shared__ int primaryCol_d[BLOCK_SIZE * THREAD_SIZE][BLOCK_SIZE * THREAD_SIZE];
+	__shared__ int primaryRow_p[BLOCK_SIZE * THREAD_SIZE][BLOCK_SIZE * THREAD_SIZE];
 	
-	if (v1 < n && v2 < n)
-	{
-		path = d[v1 * n + v2];
-		predecessor = p[v1 * n + v2];
-	}
-	else
-	{
-		path = INF;
-		predecessor = NONE;
-	}
-
-
-	if (v1Row < n && v2Row < n)
-	{
- 		primaryRow_d[ty][tx] = d[v1Row * n + v2Row];
-		primaryRow_p[ty][tx] = p[v1Row * n + v2Row];
-	}
-	else
-	{
-		primaryRow_d[ty][tx] = INF;
-		primaryRow_p[ty][tx] = NONE;
-	}
-
-	primaryCol_d[ty][tx] = (v1Col < n && v2Col < n) ? d[v1Col * n + v2Col] : INF;
-	
-
-	 // Synchronize to make sure the all value are loaded in block
-	__syncthreads();
-
+	// Load data for virtual block
 	#pragma unroll
-	FOR (i, 0, BLOCK_SIZE - 1)
+	FOR (i, 0, THREAD_SIZE - 1)
 	{
-		newPath = primaryCol_d[ty][i] + primaryRow_d[i][tx];
-		if (path > newPath)
+		#pragma unroll
+		FOR(j, 0, THREAD_SIZE -1)
 		{
-			path = newPath;
-			predecessor = primaryRow_p[i][tx];
+
+			if (v1Row + i < n && v2Row + j < n)
+			{
+ 				primaryRow_d[ty + i][tx + j] = d[(v1Row + i) * n + v2Row + j];
+				primaryRow_p[ty + i][tx + j] = p[(v1Row + i) * n + v2Row + j];
+			}
+			else
+			{
+				primaryRow_d[ty + i][tx + j] = INF;
+				primaryRow_p[ty + i][tx + j] = NONE;
+			}
+			primaryCol_d[ty + i][tx + j] = (v1Col +i  < n && v2Col + j < n) ? d[(v1Col + i) * n + v2Col + j] : INF;
 		}
 	}
 
-	if (v1 < n && v2 < n)
-	{
-		d[v1 * n + v2] = path;
-		p[v1 * n + v2] = predecessor;
+	 // Synchronize to make sure the all value are loaded in virtual block
+	__syncthreads();
+
+        // Compute data for virtual block
+        #pragma unroll
+        FOR (i, 0, THREAD_SIZE - 1)
+        {
+                #pragma unroll
+                FOR(j, 0, THREAD_SIZE -1)
+		{
+			if (v1 + i < n && v2 + j < n )
+			{
+		                path = d[(v1 + i) * n + v2 + j];
+		                predecessor = p[(v1 + i) * n + v2 + j];
+
+				#pragma unroll
+				FOR (k, 0, BLOCK_SIZE * THREAD_SIZE - 1)
+				{
+					newPath = primaryCol_d[ty + i][k] + primaryRow_d[k][tx + j];
+					if (path > newPath)
+					{
+						path = newPath;
+						predecessor = primaryRow_p[k][tx + j];
+					}
+				}
+                		d[(v1 + i) * n + v2 + j] = path;
+		                p[(v1 + i) * n + v2 + j] = predecessor;
+
+			}
+		}
 	}
 }
 
@@ -317,11 +325,14 @@ template <int BLOCK_SIZE> __global__ void fw_kernel_phase_three(const unsigned i
 * @param d matrix of shortest paths d(G)
 * @param p matrix of predecessors p(G)
 */
-void fw_gpu(const unsigned int n, const int * const G, int * const d, int * const p)
+template <int BLOCK_SIZE, int THREAD_SIZE> void fw_gpu(const unsigned int n, const int * const G, int * const d, int * const p)
 {
 	int *dev_d = 0;
 	int *dev_p = 0;
 	
+	// Size of virtual block
+	const int VIRTUAL_BLOCK_SIZE = BLOCK_SIZE * THREAD_SIZE;
+
 	cudaError_t cudaStatus;
 	cudaStream_t cpyStream;
 
@@ -330,16 +341,31 @@ void fw_gpu(const unsigned int n, const int * const G, int * const d, int * cons
 	HANDLE_ERROR(cudaStatus);
 
         // Initialize the grid and block dimensions here
-	dim3 dimGridP2((n - 1) / BLOCK_WIDTH + 1, 2 , 1);
-	dim3 dimGridP3((n - 1) / BLOCK_WIDTH + 1, (n - 1) / BLOCK_WIDTH + 1, 1);
-	dim3 dimBlock(BLOCK_WIDTH, BLOCK_WIDTH, 1);
-	int numOfBlock = (n - 1) / BLOCK_WIDTH;
+	dim3 dimGridP1(1, 1, 1);
+	dim3 dimGridP2((n - 1) / VIRTUAL_BLOCK_SIZE + 1, 2 , 1);
+	dim3 dimGridP3((n - 1) / VIRTUAL_BLOCK_SIZE + 1, (n - 1) / VIRTUAL_BLOCK_SIZE + 1, 1);
+
+	dim3 dimBlockP1(VIRTUAL_BLOCK_SIZE, VIRTUAL_BLOCK_SIZE, 1);
+	dim3 dimBlockP2(VIRTUAL_BLOCK_SIZE, VIRTUAL_BLOCK_SIZE, 1);
+	dim3 dimBlockP3(BLOCK_SIZE, BLOCK_SIZE, 1);
+	
+	int numOfBlock = (n - 1) / VIRTUAL_BLOCK_SIZE;
 
 	if (gDebug) 
 	{
 		printf("|V| %d\n", n);
-		printf("Dim Grid:\nx - %d\ny - %d\nz - %d\n", dimGridP3.x, dimGridP3.y, dimGridP3.z);
-		printf("Dim Block::\nx - %d\ny - %d\nz - %d\n", dimBlock.x, dimBlock.y, dimBlock.z);
+
+		printf("Phase 1\n");
+		printf("Dim Grid:\nx - %d\ny - %d\nz - %d\n", dimGridP1.x, dimGridP1.y, dimGridP1.z);
+		printf("Dim Block::\nx - %d\ny - %d\nz - %d\n", dimBlockP1.x, dimBlockP1.y, dimBlockP1.z);
+
+		printf("\nPhase 2\n");
+                printf("Dim Grid:\nx - %d\ny - %d\nz - %d\n", dimGridP2.x, dimGridP2.y, dimGridP2.z);
+                printf("Dim Block::\nx - %d\ny - %d\nz - %d\n", dimBlockP2.x, dimBlockP2.y, dimBlockP2.z);
+
+                printf("Phase 3\n");
+                printf("Dim Grid:\nx - %d\ny - %d\nz - %d\n", dimGridP3.x, dimGridP3.y, dimGridP3.z);
+                printf("Dim Block::\nx - %d\ny - %d\nz - %d\n", dimBlockP3.x, dimBlockP3.y, dimBlockP3.z);
 	}
 	
 	// Create new stream to copy data	
@@ -353,7 +379,7 @@ void fw_gpu(const unsigned int n, const int * const G, int * const d, int * cons
 	HANDLE_ERROR(cudaStatus);
 
         // Wake up gpu
-	wake_gpu_kernel<<<1, dimBlock>>>(32);
+	wake_gpu_kernel<<<1, dimBlockP1>>>(32);
 	
         // Copy input vectors from host memory to GPU buffers.
         cudaStatus = cudaMemcpyAsync(dev_d, G, n * n * sizeof(int), CMCPYHTD, cpyStream);
@@ -362,12 +388,12 @@ void fw_gpu(const unsigned int n, const int * const G, int * const d, int * cons
 	// cudaDeviceSynchronize waits for the kernel to finish, and returns
         cudaStatus = cudaDeviceSynchronize();
         HANDLE_ERROR(cudaStatus);
-
+	
 	FOR(block, 0, numOfBlock) 
 	{
-		fw_kernel_phase_one<BLOCK_WIDTH><<<1, dimBlock>>>(block, n, dev_d, dev_p);
-		fw_kernel_phase_two<BLOCK_WIDTH><<<dimGridP2, dimBlock>>>(block, n, dev_d, dev_p);
-		fw_kernel_phase_three<BLOCK_WIDTH><<<dimGridP3, dimBlock>>>(block, n, dev_d, dev_p);
+		fw_kernel_phase_one<VIRTUAL_BLOCK_SIZE><<<1, dimBlockP1>>>(block, n, dev_d, dev_p);
+		fw_kernel_phase_two<VIRTUAL_BLOCK_SIZE><<<dimGridP2, dimBlockP2>>>(block, n, dev_d, dev_p);
+		fw_kernel_phase_three<BLOCK_SIZE, THREAD_SIZE><<<dimGridP3, dimBlockP3>>>(block, n, dev_d, dev_p);
 	}
 
 	// Check for any errors launching the kernel
@@ -540,7 +566,7 @@ int main(int argc, char **argv)
 	cudaEventCreate(&stop);
 	cudaEventRecord(start,0);
 	
-	fw_gpu(V, G, d, p);
+	fw_gpu<BLOCK_WIDTH, THREAD_WIDTH>(V, G, d, p);
 	
 	// Finish recording
 	cudaEventRecord(stop,0);
