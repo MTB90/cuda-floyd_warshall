@@ -9,6 +9,7 @@ usage ()
 	echo "-o <directory where it will be saved results>"
 	echo "-d this print all information"
 	echo "-p this print data in and out"
+	echo "-c check result"
 	exit -1;
 }
 
@@ -16,7 +17,7 @@ pflag=""
 dflag=""
 o=""
 
-while getopts ":i:t:f:o:pd" opt; do
+while getopts ":i:t:f:o:pdc" opt; do
 	case "${opt}" in
 		i)
 			input=${OPTARG}
@@ -35,6 +36,8 @@ while getopts ":i:t:f:o:pd" opt; do
 			;;
 		d)
 			dflag="-d"
+			;;
+		c)	cflag="-c"
 			;;
 		*)
 		        usage
@@ -97,9 +100,9 @@ if [[ ! -z "${t}" ]]; then
 	do
 		echo "Begin test - $line"	
 		if [ "${o}" == "" ]; then
-			./$output $pflag $dflag < $dir/$line
+			./$output $pflag $dflag $cflag < $dir/$line
 		else
-			./$output $pflag $dflag < $dir/$line > "$o/$line"
+			./$output $pflag $dflag $cflag < $dir/$line > "$o/$line"
 		fi
 		echo "End test - $line"
 		echo
@@ -112,9 +115,9 @@ fi
 base=$(basename $f)
 echo "Begin test - $base" 
 if [ "${o}" == "" ]; then
-	./$output $pflag $dflag < $f
+	./$output $pflag $dflag $cflag < $f
 else
-	./$output $pflag $dflag < $f > "$o/$base"
+	./$output $pflag $dflag $cflag < $f > "$o/$base"
 fi
 echo "End test - $base"
 
