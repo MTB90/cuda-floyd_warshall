@@ -8,7 +8,10 @@ based on article:
 The path reconstruction for blocked is available 
 the sequential code and blocked FW can return different predecessor path but the cost is the same.
 
+</hr>
+
 <b> Floyd Warshall with predecessors</b>
+</br>
 <b> Hardware: GTX 480 and  Intel(R) Core(TM) i7-2600K CPU @ 3.40GHz</b> 
 
 <table>
