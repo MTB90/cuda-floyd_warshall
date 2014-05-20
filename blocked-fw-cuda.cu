@@ -9,7 +9,7 @@
 
 // Helper definition
 #define VAR(v, i) __typeof(i) v=(i)
-#define FOR(i, j, k) for (int i = (j); i <= (k); ++i)
+#define FOR(i, j, k) for (i = (j); i <= (k); ++i)
 #define FORD(i, j, k)for (int i=(j); i >= (k); --i)
 #define FORE(i, c) for(VAR(i, (c).begin()); i != (c).end(); ++i)
 #define REP(i, n) for(int i = 0;i <(n); ++i)
@@ -29,9 +29,6 @@
 
 bool gPrint = false; 	// print graph d or not
 bool gDebug = false;	// print more deatails to debug
-
-// MIN FUNCTION
-#define MIN(x, y) y + ((x - y) & ((x - y) >> (sizeof(int) * CHARBIT - 1)))
 
 /** Cuda handle error, if err is not success print error and line in code
 *
@@ -66,6 +63,7 @@ __global__ void wake_gpu_kernel(int reps)
 */
 template <int BLOCK_SIZE> __global__ void fw_kernel_phase_one(const unsigned int block, const unsigned int n, const size_t pitch, int * const d, int * const p)
 {
+	int i;
 	int newPath;
 	int newPred;
 
@@ -75,13 +73,15 @@ template <int BLOCK_SIZE> __global__ void fw_kernel_phase_one(const unsigned int
 	int v1 = BLOCK_SIZE * block + ty;
 	int v2 = BLOCK_SIZE * block + tx;  
 
+	const int cell = v1 * pitch + v2;
+
 	__shared__ int primary_d[BLOCK_SIZE][BLOCK_SIZE];
 	__shared__ int primary_p[BLOCK_SIZE][BLOCK_SIZE];
 
 	if (v1 < n && v2 < n) 
 	{
-		 primary_d[ty][tx] = d[v1 * pitch + v2];
-		 primary_p[ty][tx] = p[v1 * pitch + v2];
+		 primary_d[ty][tx] = d[cell];
+		 primary_p[ty][tx] = p[cell];
 		 newPred = primary_p[ty][tx];
 	}
 	else 
@@ -113,8 +113,8 @@ template <int BLOCK_SIZE> __global__ void fw_kernel_phase_one(const unsigned int
 
 	if (v1 < n && v2 < n) 
 	{
-		d[v1 * pitch + v2] = primary_d[ty][tx];
-		p[v1 * pitch + v2] = primary_p[ty][tx];
+		d[cell] = primary_d[ty][tx];
+		p[cell] = primary_p[ty][tx];
 	}
 }
 
@@ -128,7 +128,7 @@ template <int BLOCK_SIZE> __global__ void fw_kernel_phase_one(const unsigned int
 template <int BLOCK_SIZE> __global__ void fw_kernel_phase_two(const unsigned int block, const unsigned int n, const size_t pitch, int * const d, int * const p)
 {
 	if (blockIdx.x == block) return;
-
+	int i;
         int newPath;
 	int newPred;
 
@@ -139,7 +139,8 @@ template <int BLOCK_SIZE> __global__ void fw_kernel_phase_two(const unsigned int
 
 	int pv1 = BLOCK_SIZE * block + ty;
         int pv2 = BLOCK_SIZE * block + tx;
-
+	const int cell_primary = pv1 * pitch + pv2;
+	
 	__shared__ int primary_d[BLOCK_SIZE][BLOCK_SIZE];
 	__shared__ int current_d[BLOCK_SIZE][BLOCK_SIZE];
 	
@@ -148,8 +149,8 @@ template <int BLOCK_SIZE> __global__ void fw_kernel_phase_two(const unsigned int
 
 	if (pv1 < n && pv2 < n)
 	{
-		primary_d[ty][tx] = d[pv1 * pitch + pv2];
-		primary_p[ty][tx] = p[pv1 * pitch + pv2];
+		primary_d[ty][tx] = d[cell_primary];
+		primary_p[ty][tx] = p[cell_primary];
 	}
 	else
 	{
@@ -169,11 +170,13 @@ template <int BLOCK_SIZE> __global__ void fw_kernel_phase_two(const unsigned int
 		v1 = BLOCK_SIZE * blockIdx.x + ty;
 		v2 = BLOCK_SIZE * block + tx;
 	}
+	
+	const int cell_current = v1 * pitch + v2;
 
 	if (v1 < n && v2 < n)
 	{
-		current_d[ty][tx] = d[v1 * pitch + v2];
-		current_p[ty][tx] = p[v1 * pitch + v2];
+		current_d[ty][tx] = d[cell_current];
+		current_p[ty][tx] = p[cell_current];
 		newPred = current_p[ty][tx];
 	}
 	else
@@ -209,15 +212,15 @@ template <int BLOCK_SIZE> __global__ void fw_kernel_phase_two(const unsigned int
 	else
 	{
         	#pragma unroll
-		FOR(j, 0, BLOCK_SIZE - 1)
+		FOR(i, 0, BLOCK_SIZE - 1)
 		{
-			newPath = current_d[ty][j] + primary_d[j][tx];
+			newPath = current_d[ty][i] + primary_d[i][tx];
 			
 			__syncthreads();
 			if (newPath < current_d[ty][tx])
 			{
 				current_d[ty][tx] = newPath;
-				current_p[ty][tx] = primary_p[j][tx];
+				current_p[ty][tx] = primary_p[i][tx];
 			}
 		        
 			// Synchronize to make sure that all value are current in block
@@ -227,8 +230,8 @@ template <int BLOCK_SIZE> __global__ void fw_kernel_phase_two(const unsigned int
 
 	if (v1 < n && v2 < n)
         {
-        	d[v1 * pitch + v2] = current_d[ty][tx];
-		p[v1 * pitch + v2] = current_p[ty][tx];
+        	d[cell_current] = current_d[ty][tx];
+		p[cell_current] = current_p[ty][tx];
         }
 }
 
@@ -242,7 +245,8 @@ template <int BLOCK_SIZE> __global__ void fw_kernel_phase_two(const unsigned int
 
 template <int BLOCK_SIZE, int THREAD_SIZE> __global__ void fw_kernel_phase_three(const unsigned int block, const unsigned int n, const size_t pitch, int * const d, int * const p)
 {
-	if (blockIdx.x == block || blockIdx.y == block) return ;
+	if (blockIdx.x == block || blockIdx.y == block) return;
+	int i, j, k;
 	int newPath;
 	int path;
 	int predecessor;
@@ -259,6 +263,11 @@ template <int BLOCK_SIZE, int THREAD_SIZE> __global__ void fw_kernel_phase_three
 	int v1Col = v1;
 	int v2Col = BLOCK_SIZE * block * THREAD_SIZE + tx;
 	
+	int idx, idy;
+	int cell_col;
+	int cell_row;
+	int cell;
+	
 	__shared__ int primaryRow_d[BLOCK_SIZE * THREAD_SIZE][BLOCK_SIZE * THREAD_SIZE];
 	__shared__ int primaryCol_d[BLOCK_SIZE * THREAD_SIZE][BLOCK_SIZE * THREAD_SIZE];
 	__shared__ int primaryRow_p[BLOCK_SIZE * THREAD_SIZE][BLOCK_SIZE * THREAD_SIZE];
@@ -270,18 +279,32 @@ template <int BLOCK_SIZE, int THREAD_SIZE> __global__ void fw_kernel_phase_three
 		#pragma unroll
 		FOR(j, 0, THREAD_SIZE -1)
 		{
-
+			idx = tx + j;
+			idy = ty + i;
+			
 			if (v1Row + i < n && v2Row + j < n)
 			{
- 				primaryRow_d[ty + i][tx + j] = d[(v1Row + i) * pitch + v2Row + j];
-				primaryRow_p[ty + i][tx + j] = p[(v1Row + i) * pitch + v2Row + j];
+				cell_row = (v1Row + i) * pitch + v2Row + j;
+ 			
+				primaryRow_d[idy][idx] = d[cell_row];
+				primaryRow_p[idy][idx] = p[cell_row];
 			}
 			else
 			{
-				primaryRow_d[ty + i][tx + j] = INF;
-				primaryRow_p[ty + i][tx + j] = NONE;
+				primaryRow_d[idy][idx] = INF;
+				primaryRow_p[idy][idx] = NONE;
 			}
-			primaryCol_d[ty + i][tx + j] = (v1Col +i  < n && v2Col + j < n) ? d[(v1Col + i) * pitch + v2Col + j] : INF;
+			
+			if (v1Col +i  < n && v2Col + j < n)
+			{
+				cell_col = (v1Col + i) * pitch + v2Col + j;
+				primaryCol_d[idy][idx] = d[cell_col];
+
+			}
+			else
+			{
+				primaryCol_d[idy][idx] = INF;
+			}
 		}
 	}
 
@@ -297,22 +320,26 @@ template <int BLOCK_SIZE, int THREAD_SIZE> __global__ void fw_kernel_phase_three
 		{
 			if (v1 + i < n && v2 + j < n )
 			{
-		                path = d[(v1 + i) * pitch + v2 + j];
-		                predecessor = p[(v1 + i) * pitch + v2 + j];
+				cell = (v1 + i) * pitch + v2 + j;
+		                
+				path = d[cell];
+		                predecessor = p[cell];
+				
+				idy = ty + i;
+				idx = tx + j;
 
 				#pragma unroll
 				FOR (k, 0, BLOCK_SIZE * THREAD_SIZE - 1)
 				{
-					newPath = primaryCol_d[ty + i][k] + primaryRow_d[k][tx + j];
+					newPath = primaryCol_d[idy][k] + primaryRow_d[k][idx];
 					if (path > newPath)
 					{
 						path = newPath;
-						predecessor = primaryRow_p[k][tx + j];
+						predecessor = primaryRow_p[k][idx];
 					}
 				}
-                		d[(v1 + i) * pitch + v2 + j] = path;
-		                p[(v1 + i) * pitch + v2 + j] = predecessor;
-
+                		d[cell] = path;
+		                p[cell] = predecessor;
 			}
 		}
 	}
@@ -394,7 +421,9 @@ template <int BLOCK_SIZE, int THREAD_SIZE> void fw_gpu(const unsigned int n, con
 	// cudaDeviceSynchronize waits for the kernel to finish, and returns
         cudaStatus = cudaDeviceSynchronize();
         HANDLE_ERROR(cudaStatus);
-	
+
+	int block;
+	//cudaFuncSetCacheConfig(fw_kernel_phase_three<BLOCK_SIZE, THREAD_SIZE>, cudaFuncCachePreferShared);
 	FOR(block, 0, numOfBlock) 
 	{
 		fw_kernel_phase_one<VIRTUAL_BLOCK_SIZE><<<1, dimBlockP1>>>(block, n, pitch_int, dev_d, dev_p);
@@ -434,6 +463,7 @@ template <int BLOCK_SIZE, int THREAD_SIZE> void fw_gpu(const unsigned int n, con
 */
 void print_graph(const unsigned int n, const int * const G)
 {
+	int v1, v2;
 	FOR(v1, 0, n - 1)
 	{
 		FOR(v2, 0, n - 1) 
@@ -481,7 +511,7 @@ int reconstruct_path(unsigned int n, unsigned int i, unsigned int j, const int *
 */
 bool check_paths(const unsigned int n, const int * const G, const int * const d, const int * const p)
 {
-	
+	int i, j;
 	FOR (i, 0, n - 1)
 	{
 		FOR (j, 0, n - 1)
@@ -555,6 +585,7 @@ int main(int argc, char **argv)
 			p[v1 * V + v2] = v1;
 	}
 
+	int v;
 	FOR (v, 0, V - 1)
 		G[v * V + v] = 0;
 
