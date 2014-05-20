@@ -64,7 +64,7 @@ __global__ void wake_gpu_kernel(int reps)
 * @param d matrix of shortest paths d(G)
 * @param p matrix of predecessors p(G)
 */
-template <int BLOCK_SIZE> __global__ void fw_kernel_phase_one(const unsigned int block, const unsigned int n, int * const d, int * const p)
+template <int BLOCK_SIZE> __global__ void fw_kernel_phase_one(const unsigned int block, const unsigned int n, const size_t pitch, int * const d, int * const p)
 {
 	int newPath;
 	int newPred;
@@ -80,8 +80,8 @@ template <int BLOCK_SIZE> __global__ void fw_kernel_phase_one(const unsigned int
 
 	if (v1 < n && v2 < n) 
 	{
-		 primary_d[ty][tx] = d[v1 * n + v2];
-		 primary_p[ty][tx] = p[v1 * n + v2];
+		 primary_d[ty][tx] = d[v1 * pitch + v2];
+		 primary_p[ty][tx] = p[v1 * pitch + v2];
 		 newPred = primary_p[ty][tx];
 	}
 	else 
@@ -113,8 +113,8 @@ template <int BLOCK_SIZE> __global__ void fw_kernel_phase_one(const unsigned int
 
 	if (v1 < n && v2 < n) 
 	{
-		d[v1 * n + v2] = primary_d[ty][tx];
-		p[v1 * n + v2] = primary_p[ty][tx];
+		d[v1 * pitch + v2] = primary_d[ty][tx];
+		p[v1 * pitch + v2] = primary_p[ty][tx];
 	}
 }
 
@@ -125,7 +125,7 @@ template <int BLOCK_SIZE> __global__ void fw_kernel_phase_one(const unsigned int
 * @param d matrix of shortest paths d(G)
 * @param p matrix of predecessors p(G)
 */
-template <int BLOCK_SIZE> __global__ void fw_kernel_phase_two(const unsigned int block, const unsigned int n, int * const d, int * const p)
+template <int BLOCK_SIZE> __global__ void fw_kernel_phase_two(const unsigned int block, const unsigned int n, const size_t pitch, int * const d, int * const p)
 {
 	if (blockIdx.x == block) return;
 
@@ -148,8 +148,8 @@ template <int BLOCK_SIZE> __global__ void fw_kernel_phase_two(const unsigned int
 
 	if (pv1 < n && pv2 < n)
 	{
-		primary_d[ty][tx] = d[pv1 * n + pv2];
-		primary_p[ty][tx] = p[pv1 * n + pv2];
+		primary_d[ty][tx] = d[pv1 * pitch + pv2];
+		primary_p[ty][tx] = p[pv1 * pitch + pv2];
 	}
 	else
 	{
@@ -172,8 +172,8 @@ template <int BLOCK_SIZE> __global__ void fw_kernel_phase_two(const unsigned int
 
 	if (v1 < n && v2 < n)
 	{
-		current_d[ty][tx] = d[v1 * n + v2];
-		current_p[ty][tx] = p[v1 * n + v2];
+		current_d[ty][tx] = d[v1 * pitch + v2];
+		current_p[ty][tx] = p[v1 * pitch + v2];
 		newPred = current_p[ty][tx];
 	}
 	else
@@ -227,8 +227,8 @@ template <int BLOCK_SIZE> __global__ void fw_kernel_phase_two(const unsigned int
 
 	if (v1 < n && v2 < n)
         {
-        	d[v1 * n + v2] = current_d[ty][tx];
-		p[v1 * n + v2] = current_p[ty][tx];
+        	d[v1 * pitch + v2] = current_d[ty][tx];
+		p[v1 * pitch + v2] = current_p[ty][tx];
         }
 }
 
@@ -240,7 +240,7 @@ template <int BLOCK_SIZE> __global__ void fw_kernel_phase_two(const unsigned int
 * @param p matrix of predecessors p(G)
 */
 
-template <int BLOCK_SIZE, int THREAD_SIZE> __global__ void fw_kernel_phase_three(const unsigned int block, const unsigned int n, int * const d, int * const p)
+template <int BLOCK_SIZE, int THREAD_SIZE> __global__ void fw_kernel_phase_three(const unsigned int block, const unsigned int n, const size_t pitch, int * const d, int * const p)
 {
 	if (blockIdx.x == block || blockIdx.y == block) return ;
 	int newPath;
@@ -273,15 +273,15 @@ template <int BLOCK_SIZE, int THREAD_SIZE> __global__ void fw_kernel_phase_three
 
 			if (v1Row + i < n && v2Row + j < n)
 			{
- 				primaryRow_d[ty + i][tx + j] = d[(v1Row + i) * n + v2Row + j];
-				primaryRow_p[ty + i][tx + j] = p[(v1Row + i) * n + v2Row + j];
+ 				primaryRow_d[ty + i][tx + j] = d[(v1Row + i) * pitch + v2Row + j];
+				primaryRow_p[ty + i][tx + j] = p[(v1Row + i) * pitch + v2Row + j];
 			}
 			else
 			{
 				primaryRow_d[ty + i][tx + j] = INF;
 				primaryRow_p[ty + i][tx + j] = NONE;
 			}
-			primaryCol_d[ty + i][tx + j] = (v1Col +i  < n && v2Col + j < n) ? d[(v1Col + i) * n + v2Col + j] : INF;
+			primaryCol_d[ty + i][tx + j] = (v1Col +i  < n && v2Col + j < n) ? d[(v1Col + i) * pitch + v2Col + j] : INF;
 		}
 	}
 
@@ -297,8 +297,8 @@ template <int BLOCK_SIZE, int THREAD_SIZE> __global__ void fw_kernel_phase_three
 		{
 			if (v1 + i < n && v2 + j < n )
 			{
-		                path = d[(v1 + i) * n + v2 + j];
-		                predecessor = p[(v1 + i) * n + v2 + j];
+		                path = d[(v1 + i) * pitch + v2 + j];
+		                predecessor = p[(v1 + i) * pitch + v2 + j];
 
 				#pragma unroll
 				FOR (k, 0, BLOCK_SIZE * THREAD_SIZE - 1)
@@ -310,8 +310,8 @@ template <int BLOCK_SIZE, int THREAD_SIZE> __global__ void fw_kernel_phase_three
 						predecessor = primaryRow_p[k][tx + j];
 					}
 				}
-                		d[(v1 + i) * n + v2 + j] = path;
-		                p[(v1 + i) * n + v2 + j] = predecessor;
+                		d[(v1 + i) * pitch + v2 + j] = path;
+		                p[(v1 + i) * pitch + v2 + j] = predecessor;
 
 			}
 		}
@@ -329,7 +329,10 @@ template <int BLOCK_SIZE, int THREAD_SIZE> void fw_gpu(const unsigned int n, con
 {
 	int *dev_d = 0;
 	int *dev_p = 0;
-	
+
+	size_t pitch;
+	size_t pitch_int;
+
 	// Size of virtual block
 	const int VIRTUAL_BLOCK_SIZE = BLOCK_SIZE * THREAD_SIZE;
 
@@ -373,27 +376,30 @@ template <int BLOCK_SIZE, int THREAD_SIZE> void fw_gpu(const unsigned int n, con
 	HANDLE_ERROR(cudaStatus);
 
 	// Allocate GPU buffers for matrix of shortest paths d(G)
-	cudaStatus =  cudaMalloc((void**)&dev_d, n * n * sizeof(int));
+	cudaStatus = cudaMallocPitch(&dev_d, &pitch, n * sizeof(int), n);
 	HANDLE_ERROR(cudaStatus);
-	cudaStatus =  cudaMalloc((void**)&dev_p, n * n * sizeof(int));
+
+	cudaStatus = cudaMallocPitch(&dev_p, &pitch, n * sizeof(int), n);
 	HANDLE_ERROR(cudaStatus);
+
+	pitch_int = pitch / sizeof(int);
 
         // Wake up gpu
 	wake_gpu_kernel<<<1, dimBlockP1>>>(32);
 	
         // Copy input vectors from host memory to GPU buffers.
-        cudaStatus = cudaMemcpyAsync(dev_d, G, n * n * sizeof(int), CMCPYHTD, cpyStream);
-	cudaStatus = cudaMemcpyAsync(dev_p, p, n * n * sizeof(int), CMCPYHTD, cpyStream);
-        
+        cudaMemcpy2DAsync(dev_d, pitch, G, n * sizeof(int), n * sizeof(int), n, CMCPYHTD, cpyStream);
+	cudaMemcpy2DAsync(dev_p, pitch, p, n * sizeof(int), n * sizeof(int), n, CMCPYHTD, cpyStream);
+
 	// cudaDeviceSynchronize waits for the kernel to finish, and returns
         cudaStatus = cudaDeviceSynchronize();
         HANDLE_ERROR(cudaStatus);
 	
 	FOR(block, 0, numOfBlock) 
 	{
-		fw_kernel_phase_one<VIRTUAL_BLOCK_SIZE><<<1, dimBlockP1>>>(block, n, dev_d, dev_p);
-		fw_kernel_phase_two<VIRTUAL_BLOCK_SIZE><<<dimGridP2, dimBlockP2>>>(block, n, dev_d, dev_p);
-		fw_kernel_phase_three<BLOCK_SIZE, THREAD_SIZE><<<dimGridP3, dimBlockP3>>>(block, n, dev_d, dev_p);
+		fw_kernel_phase_one<VIRTUAL_BLOCK_SIZE><<<1, dimBlockP1>>>(block, n, pitch_int, dev_d, dev_p);
+		fw_kernel_phase_two<VIRTUAL_BLOCK_SIZE><<<dimGridP2, dimBlockP2>>>(block, n, pitch_int, dev_d, dev_p);
+		fw_kernel_phase_three<BLOCK_SIZE, THREAD_SIZE><<<dimGridP3, dimBlockP3>>>(block, n, pitch_int, dev_d, dev_p);
 	}
 
 	// Check for any errors launching the kernel
@@ -405,10 +411,10 @@ template <int BLOCK_SIZE, int THREAD_SIZE> void fw_gpu(const unsigned int n, con
     	cudaStatus = cudaDeviceSynchronize();
 	HANDLE_ERROR(cudaStatus);
 
-	cudaStatus = cudaMemcpy(d, dev_d, n * n * sizeof(int), CMCPYDTH);
+	cudaStatus = cudaMemcpy2D(d, n * sizeof(int), dev_d, pitch, n * sizeof(int), n, CMCPYDTH);
 	HANDLE_ERROR(cudaStatus);
 	
-	cudaStatus = cudaMemcpy(p, dev_p, n * n * sizeof(int), CMCPYDTH);
+	cudaStatus = cudaMemcpy2D(p, n * sizeof(int), dev_p, pitch, n * sizeof(int), n, CMCPYDTH);
 	HANDLE_ERROR(cudaStatus);
 	
 	cudaStatus = cudaFree(dev_d);
