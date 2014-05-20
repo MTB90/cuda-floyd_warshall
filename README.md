@@ -8,7 +8,7 @@ based on article:
 
 <hr/>
 
-<b> Floyd Warshall on CUDA 16 x 16 Threads per block with predecessors</b>
+<b> Floyd Warshall on CUDA (16 x 16) with predecessors</b>
 <br/>
 <b> Hardware: GTX 480 and Intel(R) Core(TM) i7-2600K CPU @ 3.40GHz</b> 
 
