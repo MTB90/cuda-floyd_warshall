@@ -5,15 +5,14 @@ CUDA implementation of the Blocked Floyd-Warshall All pairs shortest path graph 
 based on article:
 "A Multi-Stage CUDA Kernel for Floyd-Warshall" (Ben Lund, Justin W. Smith)
 
-The path reconstruction for blocked is available 
-the sequential code and blocked FW can return different predecessor path but the cost is the same.
 
 <hr/>
 
-<b> Floyd Warshall with predecessors</b>
+<b> Floyd Warshall on CUDA  with predecessors</b>
 <br/>
-<b> Hardware: GTX 480 and  Intel(R) Core(TM) i7-2600K CPU @ 3.40GHz</b> 
-
+<b> Hardware: GTX 480 and Intel(R) Core(TM) i7-2600K CPU @ 3.40GHz</b> 
+<br/>
+<b> 16 x 16 Threads per block </b>
 <table>
   <tr>
     <th>|V|</th><th>|E|</th><th>fw.cpp</th><th> fw-cuda.cu </th><th>Speedup</th><th> blocked-fw-cuda.cu </th><th>Speedup</th>
