@@ -67,11 +67,11 @@ template <int BLOCK_SIZE> __global__ void fw_kernel_phase_one(const unsigned int
 	int newPath;
 	int newPred;
 
-	int tx = threadIdx.x; 
-	int ty = threadIdx.y;
+	const int tx = threadIdx.x; 
+	const int ty = threadIdx.y;
 	
-	int v1 = BLOCK_SIZE * block + ty;
-	int v2 = BLOCK_SIZE * block + tx;  
+	const int v1 = BLOCK_SIZE * block + ty;
+	const int v2 = BLOCK_SIZE * block + tx;  
 
 	const int cell = v1 * pitch + v2;
 
@@ -93,7 +93,6 @@ template <int BLOCK_SIZE> __global__ void fw_kernel_phase_one(const unsigned int
 	// Synchronize to make sure the all value are loaded in block
 	__syncthreads();
 
-		
 	#pragma unroll
 	FOR(i, 0, BLOCK_SIZE - 1)
 	{
@@ -132,14 +131,11 @@ template <int BLOCK_SIZE> __global__ void fw_kernel_phase_two(const unsigned int
         int newPath;
 	int newPred;
 
-	int v1, v2;
-
 	int tx = threadIdx.x;
         int ty = threadIdx.y;
 
-	int pv1 = BLOCK_SIZE * block + ty;
-        int pv2 = BLOCK_SIZE * block + tx;
-	const int cell_primary = pv1 * pitch + pv2;
+	int v1 = BLOCK_SIZE * block + ty;
+        int v2 = BLOCK_SIZE * block + tx;
 	
 	__shared__ int primary_d[BLOCK_SIZE][BLOCK_SIZE];
 	__shared__ int current_d[BLOCK_SIZE][BLOCK_SIZE];
@@ -147,7 +143,8 @@ template <int BLOCK_SIZE> __global__ void fw_kernel_phase_two(const unsigned int
 	__shared__ int primary_p[BLOCK_SIZE][BLOCK_SIZE]; 
 	__shared__ int current_p[BLOCK_SIZE][BLOCK_SIZE];
 
-	if (pv1 < n && pv2 < n)
+	const int cell_primary = v1 * pitch + v2;
+	if (v1 < n && v2 < n)
 	{
 		primary_d[ty][tx] = d[cell_primary];
 		primary_p[ty][tx] = p[cell_primary];
@@ -172,7 +169,6 @@ template <int BLOCK_SIZE> __global__ void fw_kernel_phase_two(const unsigned int
 	}
 	
 	const int cell_current = v1 * pitch + v2;
-
 	if (v1 < n && v2 < n)
 	{
 		current_d[ty][tx] = d[cell_current];
@@ -243,35 +239,29 @@ template <int BLOCK_SIZE> __global__ void fw_kernel_phase_two(const unsigned int
 * @param p matrix of predecessors p(G)
 */
 
-template <int BLOCK_SIZE, int THREAD_SIZE> __global__ void fw_kernel_phase_three(const unsigned int block, const unsigned int n, const size_t pitch, int * const d, int * const p)
+template <int BLOCK_SIZE, int THREAD_SIZE> __global__ void fw_kernel_phase_three(unsigned int block, const unsigned int n, const size_t pitch, int * const d, int * const p)
 {
 	if (blockIdx.x == block || blockIdx.y == block) return;
-	int i, j, k;
+	int i, j, k;	
 	int newPath;
-	int path;
 	int predecessor;
+	int path;
 
-	int tx = threadIdx.x * THREAD_SIZE;
-	int ty = threadIdx.y * THREAD_SIZE;
+	const int tx = threadIdx.x * THREAD_SIZE;
+	const int ty = threadIdx.y * THREAD_SIZE;
 
-	int v1 = blockDim.y * blockIdx.y * THREAD_SIZE + ty;
-	int v2 = blockDim.x * blockIdx.x * THREAD_SIZE + tx;
+	const int v1 = blockDim.y * blockIdx.y * THREAD_SIZE + ty;
+	const int v2 = blockDim.x * blockIdx.x * THREAD_SIZE + tx;
 
-	int v1Row = BLOCK_SIZE * block * THREAD_SIZE + ty;
-	int v2Row = v2;
-	
-	int v1Col = v1;
-	int v2Col = BLOCK_SIZE * block * THREAD_SIZE + tx;
-	
 	int idx, idy;
-	int cell_col;
-	int cell_row;
-	int cell;
 	
 	__shared__ int primaryRow_d[BLOCK_SIZE * THREAD_SIZE][BLOCK_SIZE * THREAD_SIZE];
 	__shared__ int primaryCol_d[BLOCK_SIZE * THREAD_SIZE][BLOCK_SIZE * THREAD_SIZE];
 	__shared__ int primaryRow_p[BLOCK_SIZE * THREAD_SIZE][BLOCK_SIZE * THREAD_SIZE];
 	
+	int v1Row = BLOCK_SIZE * block * THREAD_SIZE + ty;
+	int v2Col = BLOCK_SIZE * block * THREAD_SIZE + tx;
+
 	// Load data for virtual block
 	#pragma unroll
 	FOR (i, 0, THREAD_SIZE - 1)
@@ -281,25 +271,24 @@ template <int BLOCK_SIZE, int THREAD_SIZE> __global__ void fw_kernel_phase_three
 		{
 			idx = tx + j;
 			idy = ty + i;
-			
-			if (v1Row + i < n && v2Row + j < n)
+		
+			if (v1Row + i < n && v2 + j < n)
 			{
-				cell_row = (v1Row + i) * pitch + v2Row + j;
- 			
-				primaryRow_d[idy][idx] = d[cell_row];
-				primaryRow_p[idy][idx] = p[cell_row];
+				block = (v1Row + i) * pitch + v2 + j;
+ 		
+				primaryRow_d[idy][idx] = d[block];
+				primaryRow_p[idy][idx] = p[block];
 			}
 			else
 			{
 				primaryRow_d[idy][idx] = INF;
 				primaryRow_p[idy][idx] = NONE;
 			}
-			
-			if (v1Col +i  < n && v2Col + j < n)
+		
+			if (v1 + i  < n && v2Col + j < n)
 			{
-				cell_col = (v1Col + i) * pitch + v2Col + j;
-				primaryCol_d[idy][idx] = d[cell_col];
-
+				block = (v1 + i) * pitch + v2Col + j;
+				primaryCol_d[idy][idx] = d[block];
 			}
 			else
 			{
@@ -307,7 +296,7 @@ template <int BLOCK_SIZE, int THREAD_SIZE> __global__ void fw_kernel_phase_three
 			}
 		}
 	}
-
+	
 	 // Synchronize to make sure the all value are loaded in virtual block
 	__syncthreads();
 
@@ -320,10 +309,10 @@ template <int BLOCK_SIZE, int THREAD_SIZE> __global__ void fw_kernel_phase_three
 		{
 			if (v1 + i < n && v2 + j < n )
 			{
-				cell = (v1 + i) * pitch + v2 + j;
+				block = (v1 + i) * pitch + v2 + j;
 		                
-				path = d[cell];
-		                predecessor = p[cell];
+				path = d[block];
+		                predecessor = p[block];
 				
 				idy = ty + i;
 				idx = tx + j;
@@ -338,8 +327,8 @@ template <int BLOCK_SIZE, int THREAD_SIZE> __global__ void fw_kernel_phase_three
 						predecessor = primaryRow_p[k][idx];
 					}
 				}
-                		d[cell] = path;
-		                p[cell] = predecessor;
+                		d[block] = path;
+		                p[block] = predecessor;
 			}
 		}
 	}
@@ -423,7 +412,6 @@ template <int BLOCK_SIZE, int THREAD_SIZE> void fw_gpu(const unsigned int n, con
         HANDLE_ERROR(cudaStatus);
 
 	int block;
-	//cudaFuncSetCacheConfig(fw_kernel_phase_three<BLOCK_SIZE, THREAD_SIZE>, cudaFuncCachePreferShared);
 	FOR(block, 0, numOfBlock) 
 	{
 		fw_kernel_phase_one<VIRTUAL_BLOCK_SIZE><<<1, dimBlockP1>>>(block, n, pitch_int, dev_d, dev_p);
