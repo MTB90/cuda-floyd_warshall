@@ -1,13 +1,13 @@
 Cuda Floyd Warshall implementation
 ===========================
+<b>Author: Mateusz Bojanowski</b>
 
+<hr/>
 CUDA implementation of the Blocked Floyd-Warshall All pairs shortest path graph algorithm
 based on article:
 "A Multi-Stage CUDA Kernel for Floyd-Warshall" (Ben Lund, Justin W. Smith)
 
-
 <hr/>
-
 <b> Floyd Warshall on CUDA (16 x 16 BLOCK SIZE and 2x2 THREAD SIZE for blocked-fw-cuda) with predecessors</b>
 <br/>
 <b> Hardware: GTX 480 and Intel(R) Core(TM) i7-2600K CPU @ 3.40GHz</b> 
