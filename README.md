@@ -1,8 +1,5 @@
 Cuda Floyd Warshall implementation
 ===========================
-<b>Author: Mateusz Bojanowski</b>
-
-<hr/>
 CUDA implementation of the Blocked Floyd-Warshall All pairs shortest path graph algorithm
 based on article:
 "A Multi-Stage CUDA Kernel for Floyd-Warshall" (Ben Lund, Justin W. Smith)
@@ -44,3 +41,7 @@ based on article:
     <td> 12500</td><td> 3125000</td><td> 8453.8079s</td><td> 132.5225s </td><td> 63.79</td></td><td> 28.89446s </td><td> 292.57x</td>
   </tr>
 </table> 
+
+</hr>
+<b>Author: Mateusz Bojanowski</b>
+<hr/>
