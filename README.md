@@ -5,10 +5,22 @@ based on article:
 "A Multi-Stage CUDA Kernel for Floyd-Warshall" (Ben Lund, Justin W. Smith)
 
 <hr/>
-<b> Floyd Warshall on CUDA (16 x 16 BLOCK SIZE and 2x2 THREAD SIZE for blocked-fw-cuda) with predecessors</b>
-<br/>
-<b> Hardware: GTX 480 and Intel(R) Core(TM) i7-2600K CPU @ 3.40GHz</b> 
+<b>Tested hardware (MSI GP72 7RE):</b> 
+<ol>
+   <li>Processor: Intel(R) Core(TM) i7-7700HQ</li>
+   <li>GPU: GTX 1050 Ti 2GB RAM</li>
+   <li>RAM: 8GB RAM</li>
+</ol>    
 
+<b>Testing environment:</b> 
+<ol>
+   <li>System: Ubuntu 17.10</li>
+   <li>NVCC: 9.1</li>
+   <li>CC: 6.1</li>
+</ol> 
+
+<hr/>
+<b>Performance resutls:</b>
 <table>
   <tr>
     <th>|V|</th><th>|E|</th><th>fw.cpp</th><th> fw-cuda.cu </th><th>Speedup</th><th> blocked-fw-cuda.cu </th><th>Speedup</th>
