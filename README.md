@@ -4,11 +4,10 @@ CUDA implementation of the Blocked Floyd-Warshall All pairs shortest path graph 
 based on article:
 "A Multi-Stage CUDA Kernel for Floyd-Warshall" (Ben Lund, Justin W. Smith)
 
-<hr/>
-
-<table style="width:100%; border:0px solid" >
+#### Tested:
+<table style="width:100%; border:0px" >
  <td>
-  <b>Tested hardware (MSI GP72 7RE):</b>
+  <b>Hardware (MSI GP72 7RE):</b>
   <ol>
    <li>Processor: Intel(R) Core(TM) i7-7700HQ</li>
    <li>GPU: GTX 1050 Ti 2GB RAM</li>
@@ -16,7 +15,7 @@ based on article:
   </ol> 
  </td>
  <td>
-  <b>Testing environment:</b>
+  <b>Environment:</b>
   <ol>
    <li>System: Ubuntu 17.10</li>
    <li>NVCC: 9.1</li>
@@ -25,7 +24,9 @@ based on article:
  </td>
 </table>
 
-<b>Performance resutls:</b>
+
+#### Performance results:
+
 <table>
  <tr>
    <th>|V|</th><th>|E|</th><th>fw.cpp</th><th> fw-cuda.cu </th><th>Speedup</th><th> blocked-fw-cuda.cu </th><th>Speedup</th>
