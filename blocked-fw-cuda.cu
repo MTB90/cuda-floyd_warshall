@@ -22,19 +22,9 @@
 #define CMCPYHTD cudaMemcpyHostToDevice
 #define CMCPYDTH cudaMemcpyDeviceToHost
 
-// CONSTS for compute capability 2.0
 #define THREAD_WIDTH 2
 #define BLOCK_WIDTH 16
 #define WARP 	    32
-
-// CONSTS for compute capability 3.5
-//#define THREAD_WIDTH 1
-//#define BLOCK_WIDTH 32
-
-// CONSTS for compute capability 5.0
-//#define THREAD_WIDTH 2
-//#define BLOCK_WIDTH 32
-
 
 bool gPrint = false; 	// print graph d or not
 bool gDebug = false;	// print more deatails to debug
