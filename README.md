@@ -5,23 +5,29 @@ based on article:
 "A Multi-Stage CUDA Kernel for Floyd-Warshall" (Ben Lund, Justin W. Smith)
 
 <hr/>
-<b>Tested hardware (MSI GP72 7RE):</b> 
-<ol>
+
+<div style="width:100%;"> 
+ <!-- Main Div -->
+ <div style="float:left; width:20%;">
+  <b>Tested hardware (MSI GP72 7RE):</b>
+  <ol>
    <li>Processor: Intel(R) Core(TM) i7-7700HQ</li>
    <li>GPU: GTX 1050 Ti 2GB RAM</li>
    <li>RAM: 8GB RAM</li>
-</ol>    
-
-<b>Testing environment:</b> 
-<ol>
+  </ol> 
+ </div>
+ <div style="float:left; width:80%; margin-left:10px;">
+  <b>Testing environment:</b>
+  <ol>
    <li>System: Ubuntu 17.10</li>
    <li>NVCC: 9.1</li>
    <li>CC: 6.1</li>
-</ol> 
+  </ol>
+ </div>
+ <div>
 
-<hr/>
-<b>Performance resutls:</b>
-<table>
+ <b>Performance resutls:</b>
+ <table>
   <tr>
     <th>|V|</th><th>|E|</th><th>fw.cpp</th><th> fw-cuda.cu </th><th>Speedup</th><th> blocked-fw-cuda.cu </th><th>Speedup</th>
   </tr>
@@ -43,7 +49,10 @@ based on article:
   <tr>
     <td> 12500</td><td> 3125000</td><td> 1628s</td><td> 125.9s</td><td> 12.93x</td></td><td> 18.32s</td><td> 88.86x</td>
   </tr>
-</table> 
+ </table>
+ </div>
+<!-- Fotter DIV -->
+</div>
 
 <hr/>
 <b>Author: Mateusz Bojanowski</b>
