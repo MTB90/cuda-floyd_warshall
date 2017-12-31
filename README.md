@@ -8,7 +8,7 @@ based on article:
 
 <div style="width:100%;"> 
  <!-- Main Div -->
- <div style="float:left; width:20%;">
+ <div style="float:left; width:50%;">
   <b>Tested hardware (MSI GP72 7RE):</b>
   <ol>
    <li>Processor: Intel(R) Core(TM) i7-7700HQ</li>
@@ -16,7 +16,7 @@ based on article:
    <li>RAM: 8GB RAM</li>
   </ol> 
  </div>
- <div style="float:left; width:80%; margin-left:10px;">
+ <div style="float:right; width:50%;">
   <b>Testing environment:</b>
   <ol>
    <li>System: Ubuntu 17.10</li>
