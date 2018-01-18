@@ -119,13 +119,14 @@ void printDataJson(const unique_ptr<graphAPSPTopology>& graph, int time) {
     printMatrix(graph->graph, graph->nvertex);
     cout << "    predecessors: \n";
     printMatrix(graph->pred, graph->nvertex);
-    cout << "    compute_time:" << time << "\n}";
+    cout << "    compute_time [ms]: " << time << "\n}";
 }
 
 int main(int argc, char **argv) {
     auto algorithm = parseCommand(argc, argv);
     auto graph = readData();
 
+    printDataJson(graph, 0);
     /* Compute APSP */
     high_resolution_clock::time_point start = high_resolution_clock::now();
     apsp(graph, algorithm);
