@@ -93,11 +93,15 @@ static int _cudaMoveMemoryToHost(const std::unique_ptr<graphAPSPTopology>& outpu
     return cudaStatus;
 }
 
-/* */
-int cudaNaiveFW(const std::unique_ptr<graphAPSPTopology>& data) {
+/**
+ * Naive implementation of Floyd Warshall algorithm in CUDA
+ *
+ * @param data: unique ptr to graph data with allocated fields on host
+ */
+int cudaNaiveFW(const std::unique_ptr<graphAPSPTopology>& dataHost) {
     int *g = 0;
     int *p = 0;
-    int n = data->nvertex;
+    int n = dataHost->nvertex;
     cudaError_t cudaStatus;
     cudaStream_t cpyStream;
 
@@ -107,7 +111,7 @@ int cudaNaiveFW(const std::unique_ptr<graphAPSPTopology>& data) {
 
     // Create new stream to copy data
     cudaStatus = cudaStreamCreate(&cpyStream);
-    _cudaMoveMemoryToDevice(data, g, p, cpyStream);
+    _cudaMoveMemoryToDevice(dataHost, g, p, cpyStream);
 
     // Initialize the grid and block dimensions here
     dim3 dimGrid((n - 1) / BLOCK_WIDTH + 1, (n - 1) / BLOCK_WIDTH + 1, 1);
@@ -127,22 +131,26 @@ int cudaNaiveFW(const std::unique_ptr<graphAPSPTopology>& data) {
     cudaStatus = cudaDeviceSynchronize();
     HANDLE_ERROR(cudaStatus);
 
-    _cudaMoveMemoryToHost(data, p, g, cpyStream);
+    _cudaMoveMemoryToHost(dataHost, p, g, cpyStream);
     return cudaStatus;
 }
 
-/* */
-int cudaBlockedFW(const std::unique_ptr<graphAPSPTopology>& data) {
+/**
+ * Blocked implementation of Floyd Warshall algorithm in CUDA
+ *
+ * @param data: unique ptr to graph data with allocated fields on host
+ */
+int cudaBlockedFW(const std::unique_ptr<graphAPSPTopology>& dataHost) {
     int *d = 0;
     int *p = 0;
-    int n = data->nvertex;
+    int n = dataHost->nvertex;
     cudaStream_t cpyStream;
     cudaError_t cudaStatus;
 
     cudaStatus = cudaStreamCreate(&cpyStream);
 
-    _cudaMoveMemoryToDevice(data, d, p, cpyStream);
-    // TODO
-    _cudaMoveMemoryToHost(data, p, d, cpyStream);
+    _cudaMoveMemoryToDevice(dataHost, d, p, cpyStream);
+    // TODO not implemented yet
+    _cudaMoveMemoryToHost(dataHost, p, d, cpyStream);
     return 0;
 }
