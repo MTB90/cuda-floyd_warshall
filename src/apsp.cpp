@@ -32,7 +32,7 @@ static void naiveFW(const std::unique_ptr<graphAPSPTopology>& data) {
  * @param algorithm: algorithm type for APSP
  */
 void apsp(const std::unique_ptr<graphAPSPTopology>& data, graphAPSPAlgorithm algorithm) {
-    std::function<int(const std::unique_ptr<graphAPSPTopology>&)> algorithms[] = {
+    std::function<void(const std::unique_ptr<graphAPSPTopology>&)> algorithms[] = {
             naiveFW,
             cudaNaiveFW,
             cudaBlockedFW
