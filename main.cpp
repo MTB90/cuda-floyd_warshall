@@ -11,7 +11,7 @@
 #include <limits>
 #include <chrono>
 #include <unistd.h>
-#include "apsp.h"
+#include "lib/apsp.h"
 
 using namespace std;
 using namespace std::chrono;
