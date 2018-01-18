@@ -115,29 +115,24 @@ void printDataJson(const unique_ptr<graphAPSPTopology>& graph, int time) {
         cout << "],\n";
     };
 
-    cout << "{" << endl;
-
-    cout << "    graph:" << endl;
+    cout << "{\n    graph:\n";
     printMatrix(graph->graph, graph->nvertex);
-    cout << "    predecessors:" << endl;
+    cout << "    predecessors: \n";
     printMatrix(graph->pred, graph->nvertex);
-    cout << "    compute_time:" << time << endl;
-    cout << "}" << endl;
+    cout << "    compute_time:" << time << "\n}";
 }
 
 int main(int argc, char **argv) {
     auto algorithm = parseCommand(argc, argv);
     auto graph = readData();
 
-    high_resolution_clock::time_point start = high_resolution_clock::now();
     /* Compute APSP */
-    if (apsp(graph, algorithm) == 0) {
-        high_resolution_clock::time_point stop = high_resolution_clock::now();
-        auto duration = duration_cast<milliseconds>( stop - start ).count();
-        printDataJson(graph, duration);
-        return 0;
-    }
+    high_resolution_clock::time_point start = high_resolution_clock::now();
+    apsp(graph, algorithm);
+    high_resolution_clock::time_point stop = high_resolution_clock::now();
 
-    cerr << "Error occurred during computation !!!" << endl;
-    return -1;
+    /* Print graph */
+    auto duration = duration_cast<milliseconds>( stop - start ).count();
+    printDataJson(graph, duration);
+    return 0;
 }

@@ -5,8 +5,10 @@
 
 /**
  * Naive implementation algorithm Floyd Wharshall for APSP
+ *
+ * @param data: unique ptr to graph data with allocated fields
  */
-static int naiveFW(const std::unique_ptr<graphAPSPTopology>& data) {
+static void naiveFW(const std::unique_ptr<graphAPSPTopology>& data) {
     int newPath = 0;
     int n = data->nvertex;
 
@@ -21,17 +23,19 @@ static int naiveFW(const std::unique_ptr<graphAPSPTopology>& data) {
             }
         }
     }
-    return 0;
 }
 
 /**
  * APSP API to compute all pairs shortest paths in graph
+ *
+ * @param data: unique ptr to graph data with allocated fields
+ * @param algorithm: algorithm type for APSP
  */
-int apsp(const std::unique_ptr<graphAPSPTopology>& data, graphAPSPAlgorithm algorithm) {
+void apsp(const std::unique_ptr<graphAPSPTopology>& data, graphAPSPAlgorithm algorithm) {
     std::function<int(const std::unique_ptr<graphAPSPTopology>&)> algorithms[] = {
             naiveFW,
             cudaNaiveFW,
             cudaBlockedFW
     };
-    return algorithms[algorithm](data);
+    algorithms[algorithm](data);
 }

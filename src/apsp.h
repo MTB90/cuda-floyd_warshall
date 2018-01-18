@@ -37,9 +37,7 @@ struct graphAPSPTopology {
  *
  * @param data: unique ptr to graph data with allocated fields
  * @param algorithm: algorithm type for APSP
- *
- * @return: error code
  */
-int apsp(const std::unique_ptr<graphAPSPTopology>& data, graphAPSPAlgorithm algorithm);
+void apsp(const std::unique_ptr<graphAPSPTopology>& data, graphAPSPAlgorithm algorithm);
 
 #endif /* _APSP_ */
