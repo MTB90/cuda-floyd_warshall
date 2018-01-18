@@ -116,7 +116,7 @@ int cudaNaiveFW(const std::unique_ptr<graphAPSPTopology>& dataHost) {
     // Initialize the grid and block dimensions here
     dim3 dimGrid((n - 1) / BLOCK_WIDTH + 1, (n - 1) / BLOCK_WIDTH + 1, 1);
     dim3 dimBlock(BLOCK_WIDTH, BLOCK_WIDTH, 1);
-
+    // TODO not fully implemented yet
     cudaFuncSetCacheConfig(fw_kernel, cudaFuncCachePreferL1);
     for(int u=0; u < n; ++u) {
         fw_kernel<<<dimGrid, dimBlock>>>(u, n, g, p);
