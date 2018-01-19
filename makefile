@@ -1,43 +1,31 @@
-# Makefile for APSP 
+############# Makefile for APSP ##############
 
+# Const environments
 NVCC=/usr/local/cuda/bin/nvcc
 CPPFLAGS= -O3 -std=c++14
 
-CU_SRCS :=
-C_UPPER_SRCS :=
-CXX_SRCS :=
-C++_SRCS :=
-OBJ_SRCS :=
-CC_SRCS :=
-ASM_SRCS :=
-C_SRCS :=
-S_UPPER_SRCS :=
-CC_DEPS :=
-C++_DEPS :=
-EXECUTABLES :=
-C_UPPER_DEPS :=
-CXX_DEPS :=
-CU_DEPS :=
-CPP_DEPS :=
-C_DEPS :=
-
-
+# Define paths
+OBJS := \
+./main.o \
+./lib/cuda/cuda_apsp.o \
+./lib/apsp.o
 
 CPP_SRCS := \
-main.cpp
+main.cpp \
+lib/apsp.cpp
 
-O_SRCS := \
-apsp.o \
-cuda_apsp.o
+CPP_DEPS := \
+./main.d \
+./lib/apsp.d
 
-OBJS := \
-./main.o
+CU_SRCS := \
+lib/cuda/cuda_apsp.cu
 
-CPP_DEPS += \
-./main.d
+CU_DEPS := \
+./lib/cuda/cuda_apsp.d
 
 
-# Build root folder
+# Build cpp files in root folder
 %.o: %.cpp
 	@echo 'NVCC compiler building file: $<'
 	$(NVCC) $(CPPFLAGS) -gencode arch=compute_61,code=sm_61  -odir "." -M -o "$(@:%.o=%.d)" "$<"
@@ -45,17 +33,7 @@ CPP_DEPS += \
 	@echo 'Finished building: $<'
 	@echo ' '
 
-
-CU_SRCS := \
-lib/cuda/cuda_apsp.cu
-
-OBJS += \
-./lib/cuda/cuda_apsp.o
-
-CU_DEPS += \
-./lib/cuda/cuda_apsp.d
-
-# Building lib/cuda
+# Building cu files lib/cuda
 lib/cuda/%.o: lib/cuda/%.cu
 	@echo 'NVCC compiler building file: $<'
 	$(NVCC) $(CPPFLAGS) -gencode arch=compute_61,code=sm_61  -odir "lib/cuda" -M -o "$(@:%.o=%.d)" "$<"
@@ -63,17 +41,7 @@ lib/cuda/%.o: lib/cuda/%.cu
 	@echo 'Finished building: $<'
 	@echo ' '
 
-CPP_SRCS += \
-lib/apsp.cpp
-
-OBJS += \
-./lib/apsp.o
-
-CPP_DEPS += \
-./lib/apsp.d
-
-
-# Build lib
+# Build cpp files in lib
 lib/%.o: lib/%.cpp
 	@echo 'NVCC compiler building file: $<'
 	$(NVCC) $(CPPFLAGS) -gencode arch=compute_61,code=sm_61  -odir "lib" -M -o "$(@:%.o=%.d)" "$<"
@@ -87,9 +55,9 @@ all: cuda_floyd-warshall
 
 cuda_floyd-warshall: $(OBJS) $(USER_OBJS)
 	@echo 'Linker building target: $@'
-	$(NCC) --cudart static --relocatable-device-code=false -gencode arch=compute_61,code=compute_61 -gencode arch=compute_61,code=sm_61 -link -o  "cuda_floyd-warshall" $(OBJS) $(USER_OBJS) $(LIBS)
+	$(NVCC) --cudart static --relocatable-device-code=false -gencode arch=compute_61,code=compute_61 -gencode arch=compute_61,code=sm_61 -link -o  "cuda_floyd-warshall" $(OBJS) $(USER_OBJS) $(LIBS)
 	@echo 'Finished building target: $@'
 
 clean:
-	-$(RM) $(CC_DEPS)$(C++_DEPS)$(EXECUTABLES)$(C_UPPER_DEPS)$(CXX_DEPS)$(OBJS)$(CU_DEPS)$(CPP_DEPS)$(C_DEPS) cuda_floyd-warshall
+	-rm -fr $(OBJS) $(CU_DEPS) $(CPP_DEPS) cuda_floyd-warshall
 	-@echo ' '
