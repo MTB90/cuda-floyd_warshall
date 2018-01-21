@@ -3,10 +3,30 @@ Simple tests for APSP
 package unittest is used because it helps with test management
 and also provided formatted results for tests.
 """
+import os
+from subprocess import run, PIPE
+from unittest import TestCase
+from pathlib import Path
 
-import unittest
 
+class TestBasic(TestCase):
+    make_path = None
+    make_process = None
+    exec_name = 'cuda_floyd-warshall'
 
-class TestBasic(unittest.TestCase):
-    def test_GIVEN_WHEN_THEN(self):
-        pass
+    @classmethod
+    def setUpClass(cls):
+        cls.make_path = Path(os.path.dirname(os.path.abspath(__file__))) / '../..'
+        cls.make_process = run(['make', 'clean', 'all'],
+                               cwd=cls.make_path,
+                               stdout=PIPE, stderr=PIPE)
+
+    def test_GIVEN_source_code_WHEN_compiling_THEN_compile_success(self):
+        self.assertEqual(self.make_process.returncode, 0)
+
+    def test_GIVEN_source_code_WHEN_compiling_THEN_exec_exist(self):
+        file_path = self.make_path / self.exec_name
+        self.assertTrue(file_path.exists())
+
+    def test_GIVEN_source_code_WHEN_compiling_THEN_no_error_message(self):
+        self.assertEqual(self.make_process.stderr, '')
