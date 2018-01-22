@@ -35,7 +35,7 @@ def gen_empty_graph(size: int, value: int) -> List:
     :param size: size of graph
     :param value: value for each cell
     """
-    return [[-value] * size for _ in range(size)]
+    return [[value] * size for _ in range(size)]
 
 
 def gen_graph_with_diagonal_zeros(size: int) -> List:
