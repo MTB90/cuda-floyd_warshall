@@ -57,6 +57,7 @@ class TestBasic(TestCase):
             input_graph += f" {i*2+1} {i*2} 1"
 
         data, stderr = execute_algorithm(self.exec_path, APSP.NAIVE_FW, input_graph)
+        self.assertEqual(stderr, '')
         self.assertListEqual(data['graph'], gen_k1_graph(100))
         self.assertListEqual(data['predecessors'], gen_k1_predecessors(100))
 
@@ -68,6 +69,7 @@ class TestBasic(TestCase):
                     input_graph += f" {i} {j} 1"
 
         data, stderr = execute_algorithm(self.exec_path, APSP.NAIVE_FW, input_graph)
+        self.assertEqual(stderr, '')
         self.assertListEqual(data['graph'], gen_graph_with_diagonal_zeros(10, 1))
         self.assertListEqual(data['predecessors'], gen_kn_predecessors(10))
 
@@ -90,6 +92,7 @@ class TestBasic(TestCase):
             input_graph += f" {i*2+1} {i*2} 1"
 
         data, stderr = execute_algorithm(self.exec_path, APSP.CUDA_NAIVE_FW, input_graph)
+        self.assertEqual(stderr, '')
         self.assertListEqual(data['graph'], gen_k1_graph(100))
         self.assertListEqual(data['predecessors'], gen_k1_predecessors(100))
 
@@ -101,6 +104,7 @@ class TestBasic(TestCase):
                     input_graph += f" {i} {j} 1"
 
         data, stderr = execute_algorithm(self.exec_path, APSP.CUDA_NAIVE_FW, input_graph)
+        self.assertEqual(stderr, '')
         self.assertListEqual(data['graph'], gen_graph_with_diagonal_zeros(10, 1))
         self.assertListEqual(data['predecessors'], gen_kn_predecessors(10))
 

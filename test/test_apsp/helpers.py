@@ -22,9 +22,10 @@ def execute_algorithm(exec_path: str, algorithm: APSP, data_input: str) -> Tuple
     process = run([exec_path, '-a', algorithm],
                   input=data_input, encoding='ascii',
                   stdout=PIPE, stderr=PIPE)
+    if process.stderr:
+        return {'graph': [], 'predecessors': []}, process.stderr
     data = json.loads(process.stdout)
-    stderr = process.stderr
-    return data, stderr
+    return data, process.stderr
 
 
 def gen_empty_graph(size: int, value: int) -> List:
