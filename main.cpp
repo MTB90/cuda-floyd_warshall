@@ -62,9 +62,10 @@ graphAPSPAlgorithm parseCommand(int argc, char** argv) {
 /**
  * Read data from input
  *
+ * @param: max value for edges in input graph
  * @result: unique ptr to graph data with allocated fields
  */
-unique_ptr<graphAPSPTopology> readData() {
+unique_ptr<graphAPSPTopology> readData(int maxValue) {
     int nvertex, nedges;
     int v1, v2, value;
     cin >> nvertex >> nedges;
@@ -73,7 +74,7 @@ unique_ptr<graphAPSPTopology> readData() {
     unique_ptr<graphAPSPTopology> data;
     data = unique_ptr<graphAPSPTopology>(new graphAPSPTopology(nvertex));
     fill_n(data->pred.get(), nvertex * nvertex, -1);
-    fill_n(data->graph.get(), nvertex * nvertex, numeric_limits<int>::max() / 4);
+    fill_n(data->graph.get(), nvertex * nvertex, maxValue);
 
     /* Load data from  standard input */
     for (int i=0; i < nedges; ++i) {
@@ -95,16 +96,20 @@ unique_ptr<graphAPSPTopology> readData() {
  *
  * @param graph: pointer to graph data
  * @param time: time in seconds
+ * @param max: maximum value in graph path
  */
-void printDataJson(const unique_ptr<graphAPSPTopology>& graph, int time) {
-    // Lambda function for printMatrix
+void printDataJson(const unique_ptr<graphAPSPTopology>& graph, int time, int maxValue) {
+    // Lambda function for printMatrix -1 means no path
     ios::sync_with_stdio(false);
-    auto printMatrix = [](unique_ptr<int []>& graph, int n) {
+    auto printMatrix = [](unique_ptr<int []>& graph, int n, int max) {
         cout << "[";
         for (int i = 0; i < n; ++i) {
             cout << "[";
             for (int j = 0; j < n; ++j) {
-                cout << graph[i * n + j];
+                if (max > graph[i * n + j])
+                    cout << graph[i * n + j];
+                else
+                    cout << -1 ;
                 if (j != n - 1) cout << ",";
             }
             if (i != n - 1)
@@ -115,18 +120,18 @@ void printDataJson(const unique_ptr<graphAPSPTopology>& graph, int time) {
         cout << "],\n";
     };
 
-    cout << "{\n    graph:\n";
-    printMatrix(graph->graph, graph->nvertex);
-    cout << "    predecessors: \n";
-    printMatrix(graph->pred, graph->nvertex);
-    cout << "    compute_time [ms]: " << time << "\n}";
+    cout << "{\n    \"graph\":\n";
+    printMatrix(graph->graph, graph->nvertex, maxValue);
+    cout << "    \"predecessors\": \n";
+    printMatrix(graph->pred, graph->nvertex, maxValue);
+    cout << "    \"compute_time\": " << time << "\n}";
 }
 
 int main(int argc, char **argv) {
+    int maxValue = numeric_limits<int>::max() / 2;
     auto algorithm = parseCommand(argc, argv);
-    auto graph = readData();
+    auto graph = readData(maxValue);
 
-    printDataJson(graph, 0);
     /* Compute APSP */
     high_resolution_clock::time_point start = high_resolution_clock::now();
     apsp(graph, algorithm);
@@ -134,6 +139,6 @@ int main(int argc, char **argv) {
 
     /* Print graph */
     auto duration = duration_cast<milliseconds>( stop - start ).count();
-    printDataJson(graph, duration);
+    printDataJson(graph, duration, maxValue);
     return 0;
 }

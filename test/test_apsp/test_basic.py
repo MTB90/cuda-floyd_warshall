@@ -8,6 +8,12 @@ from subprocess import run, PIPE
 from unittest import TestCase
 from pathlib import Path
 
+from test_apsp.helpers import APSP
+from test_apsp.helpers import execute_algorithm
+from test_apsp.helpers import gen_graph_with_diagonal_zeros
+from test_apsp.helpers import gen_empty_graph, gen_k1_graph
+from test_apsp.helpers import gen_k1_predecessors
+
 
 class TestBasic(TestCase):
     make_path = None
@@ -23,12 +29,35 @@ class TestBasic(TestCase):
 
     def setUp(self):
         self.exec_path = self.make_path / self.exec_name
+        self.assertTrue(self.exec_path.exists(), f"Can't find executable {self.exec_name}")
 
     def test_GIVEN_source_code_WHEN_compiling_THEN_compile_success(self):
         self.assertEqual(self.make_process.returncode, 0)
 
-    def test_GIVEN_source_code_WHEN_compiling_THEN_exec_exist(self):
-        self.assertTrue(self.exec_path.exists())
-
     def test_GIVEN_source_code_WHEN_compiling_THEN_no_error_message(self):
         self.assertEqual(self.make_process.stderr, '')
+
+    def test_GIVEN_graph_empty_WHEN_naive_fw_THEN_return_result_empty(self):
+        result, stderr = execute_algorithm(self.exec_path, APSP.NAIVE_FW, "0 0")
+        self.assertEqual(stderr, '')
+        self.assertEqual(result['graph'], [])
+        self.assertEqual(result['predecessors'], [])
+
+    def test_GIVEN_graph_k0_WHEN_naive_fw_THEN_return_k0_result_path(self):
+        data, stderr = execute_algorithm(self.exec_path, APSP.NAIVE_FW, "100 0")
+        self.assertEqual(stderr, '')
+        self.assertListEqual(data['graph'], gen_graph_with_diagonal_zeros(100))
+        self.assertListEqual(data['predecessors'], gen_empty_graph(100))
+
+    def test_GIVEN_graph_k1_WHEN_naive_fw_THEN_return_k1_result_path(self):
+        input_graph = "100 100"
+        for i in range(50):
+            input_graph += f" {i*2} {i*2+1} 1"
+            input_graph += f" {i*2+1} {i*2} 1"
+
+        data, stderr = execute_algorithm(self.exec_path, APSP.NAIVE_FW, input_graph)
+        self.assertListEqual(data['graph'], gen_k1_graph(100))
+        self.assertListEqual(data['predecessors'], gen_k1_predecessors(100))
+
+    def test_GIVEN_graph_kn_WHEN_naive_fw_THEN_return_kn_result_path(self):
+        pass
