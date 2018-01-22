@@ -44,7 +44,7 @@ def gen_graph_with_diagonal_zeros(size: int) -> List:
 
     :param size: size of graph
     """
-    graph = gen_empty_graph(size)
+    graph = gen_empty_graph(size, -1)
     for i in range(size):
         graph[i][i] = 0
     return graph
@@ -69,7 +69,7 @@ def gen_k1_predecessors(size: int) -> List:
 
     :param size: size of graph
     """
-    graph = gen_empty_graph(size)
+    graph = gen_empty_graph(size, -1)
     for i in range(size // 2):
         graph[2 * i][2 * i + 1] = 2 * i
         graph[2 * i + 1][2 * i] = 2 * i + 1

@@ -47,7 +47,7 @@ class TestBasic(TestCase):
         data, stderr = execute_algorithm(self.exec_path, APSP.NAIVE_FW, "100 0")
         self.assertEqual(stderr, '')
         self.assertListEqual(data['graph'], gen_graph_with_diagonal_zeros(100))
-        self.assertListEqual(data['predecessors'], gen_empty_graph(100))
+        self.assertListEqual(data['predecessors'], gen_empty_graph(100, -1))
 
     def test_GIVEN_graph_k1_WHEN_naive_fw_THEN_return_k1_result_path(self):
         input_graph = "100 100"
