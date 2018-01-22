@@ -21,12 +21,14 @@ class TestBasic(TestCase):
                                cwd=cls.make_path,
                                stdout=PIPE, stderr=PIPE)
 
+    def setUp(self):
+        self.exec_path = self.make_path / self.exec_name
+
     def test_GIVEN_source_code_WHEN_compiling_THEN_compile_success(self):
         self.assertEqual(self.make_process.returncode, 0)
 
     def test_GIVEN_source_code_WHEN_compiling_THEN_exec_exist(self):
-        file_path = self.make_path / self.exec_name
-        self.assertTrue(file_path.exists())
+        self.assertTrue(self.exec_path.exists())
 
     def test_GIVEN_source_code_WHEN_compiling_THEN_no_error_message(self):
         self.assertEqual(self.make_process.stderr, '')
