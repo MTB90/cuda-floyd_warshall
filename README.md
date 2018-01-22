@@ -1,4 +1,4 @@
-Cuda Floyd Warshall implementation (Reimplementation in progress use realse 2.1)
+Cuda Floyd Warshall implementation (Refactor in progress use release 2.1)
 ===========================
 CUDA implementation of the Blocked Floyd-Warshall All pairs shortest path graph algorithm
 based on article:
