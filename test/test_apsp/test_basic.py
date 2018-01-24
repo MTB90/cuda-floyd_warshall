@@ -28,6 +28,13 @@ class TestBasic(TestCase):
                                cwd=cls.make_path,
                                stdout=PIPE, stderr=PIPE)
 
+    @classmethod
+    def tearDownClass(cls):
+        cls.make_path = Path(os.path.dirname(os.path.abspath(__file__))) / '../..'
+        cls.make_process = run(['make', 'clean'],
+                               cwd=cls.make_path,
+                               stdout=PIPE, stderr=PIPE)
+
     def setUp(self):
         self.exec_path = self.make_path / self.exec_name
         self.assertTrue(self.exec_path.exists(), f"Can't find executable {self.exec_name}")
@@ -36,7 +43,7 @@ class TestBasic(TestCase):
         self.assertEqual(self.make_process.returncode, 0)
 
     def test_GIVEN_source_code_WHEN_compiling_THEN_no_error_message(self):
-        self.assertEqual(self.make_process.stderr, '')
+        self.assertFalse(bool(self.make_process.stderr))
 
     def test_GIVEN_graph_empty_WHEN_naive_fw_THEN_return_result_empty(self):
         result, stderr = execute_algorithm(self.exec_path, APSP.NAIVE_FW, "0 0")
