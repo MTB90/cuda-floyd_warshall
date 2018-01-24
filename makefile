@@ -2,7 +2,7 @@
 
 # Const environments
 NVCC=/usr/local/cuda/bin/nvcc
-CPPFLAGS= -O3 -std=c++14
+CPPFLAGS= -O3 -std=c++11
 
 # Define paths
 OBJS := \
