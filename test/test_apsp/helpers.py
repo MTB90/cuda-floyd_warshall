@@ -25,7 +25,7 @@ def execute_algorithm(exec_path: str, algorithm: APSP, data_input: str) -> Tuple
     if process.stderr:
         return {'graph': [], 'predecessors': []}, process.stderr
     data = json.loads(process.stdout)
-    return data, process.stderr
+    return data, ''
 
 
 def gen_empty_graph(size: int, value: int) -> List:
