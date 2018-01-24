@@ -61,9 +61,7 @@ void _naive_fw_kernel(const cudaGraphAPSPTopology *dataDevice, const unsigned in
 
 static
 cudaGraphAPSPTopology *_cudaMoveMemoryToDevice(const std::unique_ptr<graphAPSPTopology>& input) {
-    cudaGraphAPSPTopology *dataDevice = NULL;
     int size = input->nvertex * input->nvertex * sizeof(int);
-
     int *graph;
     int *pred;
 
@@ -71,33 +69,40 @@ cudaGraphAPSPTopology *_cudaMoveMemoryToDevice(const std::unique_ptr<graphAPSPTo
     HANDLE_ERROR(cudaMalloc((void**)&graph, size));
     HANDLE_ERROR(cudaMalloc((void**)&pred, size));
 
-    // Copy input from host memory to GPU buffers
-    HANDLE_ERROR(cudaMemcpyAsync(graph, input->graph.get(), size, cudaMemcpyHostToDevice));
-    HANDLE_ERROR(cudaMemcpyAsync(pred, input->pred.get(), size, cudaMemcpyHostToDevice));
+    // Copy input from host memory to GPU buffers and
+    HANDLE_ERROR(cudaMemcpy(graph, input->graph.get(), size, cudaMemcpyHostToDevice));
+    HANDLE_ERROR(cudaMemcpy(pred, input->pred.get(), size, cudaMemcpyHostToDevice));
 
-    // cudaDeviceSynchronize waits for the kernel to finish, and returns
-    HANDLE_ERROR(cudaDeviceSynchronize());
+    cudaGraphAPSPTopology temp;
+    temp.nvertex = input->nvertex;
+    temp.pitch = temp.nvertex;
+    temp.graph = graph;
+    temp.pred = pred;
+
+    // Copy structure from host to device
+    cudaGraphAPSPTopology *dataDevice;
+    HANDLE_ERROR(cudaMalloc((void**) &dataDevice, sizeof(cudaGraphAPSPTopology)));
+    HANDLE_ERROR(cudaMemcpy(dataDevice, &temp,
+            sizeof(cudaGraphAPSPTopology),
+            cudaMemcpyHostToDevice));
     return dataDevice;
 }
 
 static
-void _cudaMoveMemoryToHost(const cudaGraphAPSPTopology *dataDevice, const std::unique_ptr<graphAPSPTopology>& output) {
-    /*int n = output->nvertex;
-    cudaError_t cudaStatus;
+void _cudaMoveMemoryToHost(cudaGraphAPSPTopology *dataDevice, const std::unique_ptr<graphAPSPTopology>& output) {
+    // Copy structure form device to host
+    cudaGraphAPSPTopology temp;
+    HANDLE_ERROR(cudaMemcpy(&temp, dataDevice,
+            sizeof(cudaGraphAPSPTopology),
+            cudaMemcpyDeviceToHost));
 
-    cudaStatus = cudaMemcpy(output->graph.get(), g, n * n * sizeof(int), cudaMemcpyDeviceToHost);
-    HANDLE_ERROR(cudaStatus);
+    int size = temp.nvertex * temp.nvertex * sizeof(int);
+    HANDLE_ERROR(cudaMemcpy(output->pred.get(), temp.pred, size, cudaMemcpyDeviceToHost));
+    HANDLE_ERROR(cudaMemcpy(output->graph.get(), temp.graph, size, cudaMemcpyDeviceToHost));
 
-    cudaStatus = cudaMemcpy(output->pred.get(), p, n * n * sizeof(int), cudaMemcpyDeviceToHost);
-    HANDLE_ERROR(cudaStatus);
-    cudaDeviceSynchronize();
-
-    cudaStatus = cudaFree(g);
-    HANDLE_ERROR(cudaStatus);
-
-    cudaStatus = cudaFree(p);
-    HANDLE_ERROR(cudaStatus);
-    return cudaStatus; */
+    HANDLE_ERROR(cudaFree(temp.pred));
+    HANDLE_ERROR(cudaFree(temp.graph));
+    HANDLE_ERROR(cudaFree(dataDevice));
 }
 
 /**
