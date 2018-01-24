@@ -1,87 +1,94 @@
 
 // #include <nvfunctional>
-
 #include "cuda.h"
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
-
 #include "cuda_apsp.cuh"
-
-#define CMCPYHTD cudaMemcpyHostToDevice
-#define CMCPYDTH cudaMemcpyDeviceToHost
 
 // CONSTS for compute capability
 #define THREAD_WIDTH 2
 #define BLOCK_WIDTH 16
 
-#define INF     1061109567 // 3F 3F 3F 3F
-#define NONE    -1
-
-/**
-struct cugraphAPSPTopology {
-    unsigned int nvertex; // number of vertex in graph
-    unsigned int pitch;
+/* Default structure for graph in CUDA*/
+struct cudaGraphAPSPTopology {
     int* pred;  // predecessors matrix
     int* graph; // graph matrix
+    unsigned int nvertex; // number of vertex in graph
+    size_t pitch;
 };
-*/
 
-/** Cuda handle error, if err is not success print error and line in code
+/**
+ * CUDA handle error, if error occurs print message and exit program
 *
-* @param status CUDA Error types
+* @param error: CUDA error status
+* @param file: Name of file where error occurs
+* @param line: Number line where error occurs
 */
-#define HANDLE_ERROR(err) \
-{ \
-    if (err != cudaSuccess) \
-    { \
-        fprintf(stderr, "%s failed  at line %d \nError message: %s \n", \
-            __FILE__, __LINE__ ,cudaGetErrorString(err)); \
-        exit(EXIT_FAILURE); \
-    } \
+inline static
+void _handleError(cudaError_t error, const char *file, int line) {
+    if (error != cudaSuccess) {
+        fprintf(stderr, "%s in %s at line %d\n",
+                cudaGetErrorString(error), file, line);
+        exit(EXIT_FAILURE);
+    }
 }
+/* Macro to handle CUDA error */
+#define HANDLE_ERROR(err) (_handleError( err, __FILE__, __LINE__ ))
 
-static __global__ void fw_kernel(const unsigned int u, const unsigned int n, int * const d, int * const p) {
-        int v1 = blockDim.y * blockIdx.y + threadIdx.y;
-        int v2 = blockDim.x * blockIdx.x + threadIdx.x;
+/**
+ * Naive CUDA kernel implementation algorithm Floyd Wharshall for APSP
+ *
+ * @param dataDevice: graph data with allocated fields on device
+ * @param u: Index of vertex u
+ */
+static __global__
+void _naive_fw_kernel(const cudaGraphAPSPTopology *dataDevice, const unsigned int u) {
+    int x = blockDim.x * blockIdx.x + threadIdx.x;
+    int y = blockDim.y * blockIdx.y + threadIdx.y;
 
-        if (v1 < n && v2 < n) {
-                int newPath = d[v1 * n + u] + d[u * n + v2];
-                int oldPath = d[v1 * n + v2];
-                if (oldPath > newPath) {
-                        d[v1 * n + v2] = newPath;
-                        p[v1 * n + v2] = p[u * n + v2];
-                }
+    if (y < dataDevice->nvertex && x < dataDevice->nvertex) {
+        int indexYX = y * dataDevice->pitch + x;
+        int indexUX = u * dataDevice->pitch + x;
+
+        int path = dataDevice->graph[y * dataDevice->pitch + u] +
+                dataDevice->graph[indexUX];
+        if (dataDevice->graph[indexYX] > path) {
+            dataDevice->graph[indexYX] = path;
+            dataDevice->pred[indexYX] = dataDevice->pred[indexUX];
+            }
         }
 }
 
-static int _cudaMoveMemoryToDevice(const std::unique_ptr<graphAPSPTopology>& input, int *g, int* p, cudaStream_t& cpyStream) {
-    int n = input->nvertex;
-    cudaError_t cudaStatus;
+static
+cudaGraphAPSPTopology *_cudaMoveMemoryToDevice(const std::unique_ptr<graphAPSPTopology>& input) {
+    cudaGraphAPSPTopology *dataDevice = NULL;
+    int size = input->nvertex * input->nvertex * sizeof(int);
+
+    int *graph;
+    int *pred;
 
     // Allocate GPU buffers for matrix of shortest paths d(G) and predecessors p(G)
-    cudaStatus =  cudaMalloc((void**)&g, n * n * sizeof(int));
-    HANDLE_ERROR(cudaStatus);
-    cudaStatus =  cudaMalloc((void**)&p, n * n * sizeof(int));
-    HANDLE_ERROR(cudaStatus);
+    HANDLE_ERROR(cudaMalloc((void**)&graph, size));
+    HANDLE_ERROR(cudaMalloc((void**)&pred, size));
 
-    // Copy input from host memory to GPU buffers.
-    cudaStatus = cudaMemcpyAsync(g, input->graph.get(), n * n * sizeof(int), CMCPYHTD, cpyStream);
-    cudaStatus = cudaMemcpyAsync(p, input->pred.get(), n * n * sizeof(int), CMCPYHTD, cpyStream);
+    // Copy input from host memory to GPU buffers
+    HANDLE_ERROR(cudaMemcpyAsync(graph, input->graph.get(), size, cudaMemcpyHostToDevice));
+    HANDLE_ERROR(cudaMemcpyAsync(pred, input->pred.get(), size, cudaMemcpyHostToDevice));
 
     // cudaDeviceSynchronize waits for the kernel to finish, and returns
-    cudaStatus = cudaDeviceSynchronize();
-    HANDLE_ERROR(cudaStatus);
-    return cudaStatus;
+    HANDLE_ERROR(cudaDeviceSynchronize());
+    return dataDevice;
 }
 
-static int _cudaMoveMemoryToHost(const std::unique_ptr<graphAPSPTopology>& output, int *g, int* p, cudaStream_t& cpyStream) {
-    int n = output->nvertex;
+static
+void _cudaMoveMemoryToHost(const cudaGraphAPSPTopology *dataDevice, const std::unique_ptr<graphAPSPTopology>& output) {
+    /*int n = output->nvertex;
     cudaError_t cudaStatus;
 
-    cudaStatus = cudaMemcpy(output->graph.get(), g, n * n * sizeof(int), CMCPYDTH);
+    cudaStatus = cudaMemcpy(output->graph.get(), g, n * n * sizeof(int), cudaMemcpyDeviceToHost);
     HANDLE_ERROR(cudaStatus);
 
-    cudaStatus = cudaMemcpy(output->pred.get(), p, n * n * sizeof(int), CMCPYDTH);
+    cudaStatus = cudaMemcpy(output->pred.get(), p, n * n * sizeof(int), cudaMemcpyDeviceToHost);
     HANDLE_ERROR(cudaStatus);
     cudaDeviceSynchronize();
 
@@ -90,7 +97,7 @@ static int _cudaMoveMemoryToHost(const std::unique_ptr<graphAPSPTopology>& outpu
 
     cudaStatus = cudaFree(p);
     HANDLE_ERROR(cudaStatus);
-    return cudaStatus;
+    return cudaStatus; */
 }
 
 /**
@@ -98,41 +105,31 @@ static int _cudaMoveMemoryToHost(const std::unique_ptr<graphAPSPTopology>& outpu
  *
  * @param data: unique ptr to graph data with allocated fields on host
  */
-int cudaNaiveFW(const std::unique_ptr<graphAPSPTopology>& dataHost) {
-    int *g = 0;
-    int *p = 0;
-    int n = dataHost->nvertex;
-    cudaError_t cudaStatus;
-    cudaStream_t cpyStream;
-
+void cudaNaiveFW(const std::unique_ptr<graphAPSPTopology>& dataHost) {
     // Choose which GPU to run on, change this on a multi-GPU system.
-    cudaStatus = cudaSetDevice(0);
-    HANDLE_ERROR(cudaStatus);
-
-    // Create new stream to copy data
-    cudaStatus = cudaStreamCreate(&cpyStream);
-    _cudaMoveMemoryToDevice(dataHost, g, p, cpyStream);
+    HANDLE_ERROR(cudaSetDevice(0));
 
     // Initialize the grid and block dimensions here
-    dim3 dimGrid((n - 1) / BLOCK_WIDTH + 1, (n - 1) / BLOCK_WIDTH + 1, 1);
+    dim3 dimGrid((dataHost->nvertex - 1) / BLOCK_WIDTH + 1,
+            (dataHost->nvertex - 1) / BLOCK_WIDTH + 1, 1);
     dim3 dimBlock(BLOCK_WIDTH, BLOCK_WIDTH, 1);
-    // TODO not fully implemented yet
-    cudaFuncSetCacheConfig(fw_kernel, cudaFuncCachePreferL1);
-    for(int u=0; u < n; ++u) {
-        fw_kernel<<<dimGrid, dimBlock>>>(u, n, g, p);
+
+    // Move data from host do device
+    cudaGraphAPSPTopology *dataDevice = _cudaMoveMemoryToDevice(dataHost);
+
+    cudaFuncSetCacheConfig(_naive_fw_kernel, cudaFuncCachePreferL1);
+    for(int u=0; u < dataHost->nvertex; ++u) {
+        _naive_fw_kernel<<<dimGrid, dimBlock>>>(dataDevice, u);
     }
 
     // Check for any errors launching the kernel
-    cudaStatus = cudaGetLastError();
-    HANDLE_ERROR(cudaStatus);
+    HANDLE_ERROR(cudaGetLastError());
 
-    // cudaDeviceSynchronize waits for the kernel to finish, and returns
-    // any errors encountered during the launch.
-    cudaStatus = cudaDeviceSynchronize();
-    HANDLE_ERROR(cudaStatus);
+    // cudaDeviceSynchronize waits for the kernel to finish
+    HANDLE_ERROR(cudaDeviceSynchronize());
 
-    _cudaMoveMemoryToHost(dataHost, p, g, cpyStream);
-    return cudaStatus;
+    // Move data from device to host
+    _cudaMoveMemoryToHost(dataDevice, dataHost);
 }
 
 /**
@@ -140,17 +137,6 @@ int cudaNaiveFW(const std::unique_ptr<graphAPSPTopology>& dataHost) {
  *
  * @param data: unique ptr to graph data with allocated fields on host
  */
-int cudaBlockedFW(const std::unique_ptr<graphAPSPTopology>& dataHost) {
-    int *d = 0;
-    int *p = 0;
-    int n = dataHost->nvertex;
-    cudaStream_t cpyStream;
-    cudaError_t cudaStatus;
-
-    cudaStatus = cudaStreamCreate(&cpyStream);
-
-    _cudaMoveMemoryToDevice(dataHost, d, p, cpyStream);
+void cudaBlockedFW(const std::unique_ptr<graphAPSPTopology>& dataHost) {
     // TODO not implemented yet
-    _cudaMoveMemoryToHost(dataHost, p, d, cpyStream);
-    return 0;
 }

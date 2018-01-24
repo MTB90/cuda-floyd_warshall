@@ -8,7 +8,8 @@
  *
  * @param data: unique ptr to graph data with allocated fields
  */
-static void naiveFW(const std::unique_ptr<graphAPSPTopology>& data) {
+static
+void naiveFW(const std::unique_ptr<graphAPSPTopology>& data) {
     int newPath = 0;
     int n = data->nvertex;
 

@@ -14,14 +14,14 @@
  *
  * @param data: unique ptr to graph data with allocated fields on host
  */
-int cudaNaiveFW(const std::unique_ptr<graphAPSPTopology>& dataHost);
+void cudaNaiveFW(const std::unique_ptr<graphAPSPTopology>& dataHost);
 
 /**
  * Blocked implementation of Floyd Warshall algorithm in CUDA
  *
  * @param data: unique ptr to graph data with allocated fields on host
  */
-int cudaBlockedFW(const std::unique_ptr<graphAPSPTopology>& dataHost);
+void cudaBlockedFW(const std::unique_ptr<graphAPSPTopology>& dataHost);
 
 
 #endif /* _APSP_ */
