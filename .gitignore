@@ -21,3 +21,5 @@
 *.out
 *.app
 *.pyc
+/Release/
+/Debug/
