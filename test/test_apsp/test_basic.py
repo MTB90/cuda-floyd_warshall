@@ -17,33 +17,34 @@ from test_apsp.helpers import gen_graph_dicircle_in, gen_kn_graph_for_dcircle_ou
 
 
 class TestBasic(TestCase):
-    make_path = None
-    make_process = None
-    exec_name = 'cuda_floyd-warshall'
+    MAKE_PATH = None
+    MAKE_PROCESS = None
+    EXEC_NAME = 'cuda_floyd-warshall'
+    SIZE = 100
 
     @classmethod
     def setUpClass(cls):
-        cls.make_path = Path(os.path.dirname(os.path.abspath(__file__))) / '../..'
-        cls.make_process = run(['make', 'clean', 'all'],
-                               cwd=cls.make_path,
+        cls.MAKE_PATH = Path(os.path.dirname(os.path.abspath(__file__))) / '../..'
+        cls.MAKE_PROCESS = run(['make', 'clean', 'all'],
+                               cwd=cls.MAKE_PATH,
                                stdout=PIPE, stderr=PIPE)
 
     @classmethod
     def tearDownClass(cls):
-        cls.make_path = Path(os.path.dirname(os.path.abspath(__file__))) / '../..'
-        cls.make_process = run(['make', 'clean'],
-                               cwd=cls.make_path,
+        cls.MAKE_PATH = Path(os.path.dirname(os.path.abspath(__file__))) / '../..'
+        cls.MAKE_PROCESS = run(['make', 'clean'],
+                               cwd=cls.MAKE_PATH,
                                stdout=PIPE, stderr=PIPE)
 
     def setUp(self):
-        self.exec_path = self.make_path / self.exec_name
-        self.assertTrue(self.exec_path.exists(), f"Can't find executable {self.exec_name}")
+        self.exec_path = self.MAKE_PATH / self.EXEC_NAME
+        self.assertTrue(self.exec_path.exists(), f"Can't find executable {self.EXEC_NAME}")
 
     def test_GIVEN_source_code_WHEN_compiling_THEN_compile_success(self):
-        self.assertEqual(self.make_process.returncode, 0)
+        self.assertEqual(self.MAKE_PROCESS.returncode, 0)
 
     def test_GIVEN_source_code_WHEN_compiling_THEN_no_error_message(self):
-        self.assertFalse(bool(self.make_process.stderr))
+        self.assertFalse(bool(self.MAKE_PROCESS.stderr))
 
     def test_GIVEN_graph_empty_WHEN_naive_fw_THEN_return_result_empty(self):
         result, stderr = execute_algorithm(self.exec_path, APSP.NAIVE_FW, "0 0")
@@ -52,28 +53,28 @@ class TestBasic(TestCase):
         self.assertEqual(result['predecessors'], [])
 
     def test_GIVEN_graph_k0_WHEN_naive_fw_THEN_return_k0_result_path(self):
-        data, stderr = execute_algorithm(self.exec_path, APSP.NAIVE_FW, "100 0")
+        data, stderr = execute_algorithm(self.exec_path, APSP.NAIVE_FW, f"{self.SIZE} 0")
         self.assertEqual(stderr, '')
-        self.assertListEqual(data['graph'], gen_graph_out(100, diagonal=0))
-        self.assertListEqual(data['predecessors'], gen_graph_out(100, -1))
+        self.assertListEqual(data['graph'], gen_graph_out(self.SIZE, diagonal=0))
+        self.assertListEqual(data['predecessors'], gen_graph_out(self.SIZE, -1))
 
     def test_GIVEN_graph_k1_WHEN_naive_fw_THEN_return_k1_result_path(self):
-        data, stderr = execute_algorithm(self.exec_path, APSP.NAIVE_FW, gen_k1_graph_in(100))
+        data, stderr = execute_algorithm(self.exec_path, APSP.NAIVE_FW, gen_k1_graph_in(self.SIZE))
         self.assertEqual(stderr, '')
-        self.assertListEqual(data['graph'], gen_k1_graph_out(100))
-        self.assertListEqual(data['predecessors'], gen_k1_predecessors_out(100))
+        self.assertListEqual(data['graph'], gen_k1_graph_out(self.SIZE))
+        self.assertListEqual(data['predecessors'], gen_k1_predecessors_out(self.SIZE))
 
     def test_GIVEN_graph_kn_WHEN_naive_fw_THEN_return_kn_result_path(self):
-        data, stderr = execute_algorithm(self.exec_path, APSP.NAIVE_FW, gen_kn_graph_in(10))
+        data, stderr = execute_algorithm(self.exec_path, APSP.NAIVE_FW, gen_kn_graph_in(self.SIZE))
         self.assertEqual(stderr, '')
-        self.assertListEqual(data['graph'], gen_graph_out(10, 1, 0))
-        self.assertListEqual(data['predecessors'], gen_kn_predecessors_out(10))
+        self.assertListEqual(data['graph'], gen_graph_out(self.SIZE, 1, 0))
+        self.assertListEqual(data['predecessors'], gen_kn_predecessors_out(self.SIZE))
 
     def test_GIVEN_graph_dicircle_WHEN_naive_fw_THEN_return_kn_correct_result_path(self):
-        data, stderr = execute_algorithm(self.exec_path, APSP.NAIVE_FW, gen_graph_dicircle_in(100))
+        data, stderr = execute_algorithm(self.exec_path, APSP.NAIVE_FW, gen_graph_dicircle_in(self.SIZE))
         self.assertEqual(stderr, '')
-        self.assertListEqual(data['graph'], gen_kn_graph_for_dcircle_out(100))
-        self.assertListEqual(data['predecessors'], gen_kn_pred_for_dcircle_out(100))
+        self.assertListEqual(data['graph'], gen_kn_graph_for_dcircle_out(self.SIZE))
+        self.assertListEqual(data['predecessors'], gen_kn_pred_for_dcircle_out(self.SIZE))
 
     def test_GIVEN_graph_empty_WHEN_cuda_naive_fw_THEN_return_result_empty(self):
         result, stderr = execute_algorithm(self.exec_path, APSP.CUDA_NAIVE_FW, "0 0")
@@ -82,25 +83,25 @@ class TestBasic(TestCase):
         self.assertEqual(result['predecessors'], [])
 
     def test_GIVEN_graph_k0_WHEN_cuda_naive_fw_THEN_return_k0_result_path(self):
-        data, stderr = execute_algorithm(self.exec_path, APSP.CUDA_NAIVE_FW, "100 0")
+        data, stderr = execute_algorithm(self.exec_path, APSP.CUDA_NAIVE_FW, f"{self.SIZE} 0")
         self.assertEqual(stderr, '')
-        self.assertListEqual(data['graph'], gen_graph_out(100, diagonal=0))
-        self.assertListEqual(data['predecessors'], gen_graph_out(100, -1))
+        self.assertListEqual(data['graph'], gen_graph_out(self.SIZE, diagonal=0))
+        self.assertListEqual(data['predecessors'], gen_graph_out(self.SIZE, -1))
 
     def test_GIVEN_graph_k1_WHEN_cuda_naive_fw_THEN_return_k1_result_path(self):
-        data, stderr = execute_algorithm(self.exec_path, APSP.CUDA_NAIVE_FW, gen_k1_graph_in(100))
+        data, stderr = execute_algorithm(self.exec_path, APSP.CUDA_NAIVE_FW, gen_k1_graph_in(self.SIZE))
         self.assertEqual(stderr, '')
-        self.assertListEqual(data['graph'], gen_k1_graph_out(100))
-        self.assertListEqual(data['predecessors'], gen_k1_predecessors_out(100))
+        self.assertListEqual(data['graph'], gen_k1_graph_out(self.SIZE))
+        self.assertListEqual(data['predecessors'], gen_k1_predecessors_out(self.SIZE))
 
     def test_GIVEN_graph_kn_WHEN_cuda_naive_fw_THEN_return_kn_result_path(self):
-        data, stderr = execute_algorithm(self.exec_path, APSP.CUDA_NAIVE_FW, gen_kn_graph_in(10))
+        data, stderr = execute_algorithm(self.exec_path, APSP.CUDA_NAIVE_FW, gen_kn_graph_in(self.SIZE))
         self.assertEqual(stderr, '')
-        self.assertListEqual(data['graph'], gen_graph_out(10, 1, 0))
-        self.assertListEqual(data['predecessors'], gen_kn_predecessors_out(10))
+        self.assertListEqual(data['graph'], gen_graph_out(self.SIZE, 1, 0))
+        self.assertListEqual(data['predecessors'], gen_kn_predecessors_out(self.SIZE))
 
     def test_GIVEN_graph_dicircle_WHEN_cuda_naive_fw_THEN_return_kn_correct_result_path(self):
-        data, stderr = execute_algorithm(self.exec_path, APSP.CUDA_NAIVE_FW, gen_graph_dicircle_in(100))
+        data, stderr = execute_algorithm(self.exec_path, APSP.CUDA_NAIVE_FW, gen_graph_dicircle_in(self.SIZE))
         self.assertEqual(stderr, '')
-        self.assertListEqual(data['graph'], gen_kn_graph_for_dcircle_out(100))
-        self.assertListEqual(data['predecessors'], gen_kn_pred_for_dcircle_out(100))
+        self.assertListEqual(data['graph'], gen_kn_graph_for_dcircle_out(self.SIZE))
+        self.assertListEqual(data['predecessors'], gen_kn_pred_for_dcircle_out(self.SIZE))
