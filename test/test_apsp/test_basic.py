@@ -10,8 +10,7 @@ from pathlib import Path
 
 from test_apsp.helpers import APSP
 from test_apsp.helpers import execute_algorithm
-from test_apsp.helpers import gen_graph_with_diagonal_zeros
-from test_apsp.helpers import gen_empty_graph
+from test_apsp.helpers import gen_graph
 from test_apsp.helpers import gen_k1_predecessors, gen_k1_graph
 from test_apsp.helpers import gen_kn_predecessors
 
@@ -54,8 +53,8 @@ class TestBasic(TestCase):
     def test_GIVEN_graph_k0_WHEN_naive_fw_THEN_return_k0_result_path(self):
         data, stderr = execute_algorithm(self.exec_path, APSP.NAIVE_FW, "100 0")
         self.assertEqual(stderr, '')
-        self.assertListEqual(data['graph'], gen_graph_with_diagonal_zeros(100))
-        self.assertListEqual(data['predecessors'], gen_empty_graph(100, -1))
+        self.assertListEqual(data['graph'], gen_graph(100, diagonal=0))
+        self.assertListEqual(data['predecessors'], gen_graph(100, -1))
 
     def test_GIVEN_graph_k1_WHEN_naive_fw_THEN_return_k1_result_path(self):
         input_graph = "100 100"
@@ -77,8 +76,12 @@ class TestBasic(TestCase):
 
         data, stderr = execute_algorithm(self.exec_path, APSP.NAIVE_FW, input_graph)
         self.assertEqual(stderr, '')
-        self.assertListEqual(data['graph'], gen_graph_with_diagonal_zeros(10, 1))
+        self.assertListEqual(data['graph'], gen_graph(10, 1, 0))
         self.assertListEqual(data['predecessors'], gen_kn_predecessors(10))
+
+    def test_GIVEN_graph_circle_WHEN_naive_fw_THEN_return_kn_correct_result_path(self):
+
+        pass
 
     def test_GIVEN_graph_empty_WHEN_cuda_naive_fw_THEN_return_result_empty(self):
         result, stderr = execute_algorithm(self.exec_path, APSP.CUDA_NAIVE_FW, "0 0")
@@ -89,8 +92,8 @@ class TestBasic(TestCase):
     def test_GIVEN_graph_k0_WHEN_cuda_naive_fw_THEN_return_k0_result_path(self):
         data, stderr = execute_algorithm(self.exec_path, APSP.CUDA_NAIVE_FW, "100 0")
         self.assertEqual(stderr, '')
-        self.assertListEqual(data['graph'], gen_graph_with_diagonal_zeros(100))
-        self.assertListEqual(data['predecessors'], gen_empty_graph(100, -1))
+        self.assertListEqual(data['graph'], gen_graph(100, diagonal=0))
+        self.assertListEqual(data['predecessors'], gen_graph(100, -1))
 
     def test_GIVEN_graph_k1_WHEN_cuda_naive_fw_THEN_return_k1_result_path(self):
         input_graph = "100 100"
@@ -112,6 +115,8 @@ class TestBasic(TestCase):
 
         data, stderr = execute_algorithm(self.exec_path, APSP.CUDA_NAIVE_FW, input_graph)
         self.assertEqual(stderr, '')
-        self.assertListEqual(data['graph'], gen_graph_with_diagonal_zeros(10, 1))
+        self.assertListEqual(data['graph'], gen_graph(10, 1, 0))
         self.assertListEqual(data['predecessors'], gen_kn_predecessors(10))
 
+    def test_GIVEN_graph_circle_WHEN_cuda_naive_fw_THEN_return_kn_correct_result_path(self):
+        pass

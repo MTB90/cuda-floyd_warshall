@@ -28,26 +28,18 @@ def execute_algorithm(exec_path: str, algorithm: APSP, data_input: str) -> Tuple
     return data, ''
 
 
-def gen_empty_graph(size: int, value: int) -> List:
+def gen_graph(size: int, value: int = -1, diagonal: int =-1) -> List:
     """
     Generate graph with
 
     :param size: size of graph
     :param value: value for each cell
+    :param diagonal: value for diagonal cells
     """
-    return [[value] * size for _ in range(size)]
-
-
-def gen_graph_with_diagonal_zeros(size: int, value: int = -1) -> List:
-    """
-    Generate graph with zeros in diagonal
-
-    :param size: size of graph
-    :param value: value for each cell
-    """
-    graph = gen_empty_graph(size, value)
-    for i in range(size):
-        graph[i][i] = 0
+    graph = [[value] * size for _ in range(size)]
+    if diagonal != value:
+        for i in range(size):
+            graph[i][i] = 0
     return graph
 
 
@@ -57,7 +49,7 @@ def gen_k1_graph(size: int) -> List:
 
     :param size: size of graph
     """
-    graph = gen_graph_with_diagonal_zeros(size)
+    graph = gen_graph(size, diagonal=0)
     for i in range(size // 2):
         graph[2 * i][2 * i + 1] = 1
         graph[2 * i + 1][2 * i] = 1
@@ -70,7 +62,7 @@ def gen_k1_predecessors(size: int) -> List:
 
     :param size: size of graph
     """
-    graph = gen_empty_graph(size, -1)
+    graph = gen_graph(size, -1)
     for i in range(size // 2):
         graph[2 * i][2 * i + 1] = 2 * i
         graph[2 * i + 1][2 * i] = 2 * i + 1
@@ -83,7 +75,7 @@ def gen_kn_predecessors(size: int) -> List:
 
     :param size: size of graph
     """
-    graph = gen_empty_graph(size, -1)
+    graph = gen_graph(size, -1)
     for i in range(size):
         for j in range(size):
             if i != j:
