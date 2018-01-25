@@ -28,9 +28,9 @@ def execute_algorithm(exec_path: str, algorithm: APSP, data_input: str) -> Tuple
     return data, ''
 
 
-def gen_graph(size: int, value: int = -1, diagonal: int =-1) -> List:
+def gen_graph_out(size: int, value: int = -1, diagonal: int =-1) -> List:
     """
-    Generate graph with
+    Generate graph output
 
     :param size: size of graph
     :param value: value for each cell
@@ -43,39 +43,52 @@ def gen_graph(size: int, value: int = -1, diagonal: int =-1) -> List:
     return graph
 
 
-def gen_k1_graph(size: int) -> List:
+def gen_k1_graph_out(size: int) -> List:
     """
-    Generate K1 graph
+    Generate K1 graph output
 
     :param size: size of graph
     """
-    graph = gen_graph(size, diagonal=0)
+    graph = gen_graph_out(size, diagonal=0)
     for i in range(size // 2):
         graph[2 * i][2 * i + 1] = 1
         graph[2 * i + 1][2 * i] = 1
     return graph
 
 
-def gen_k1_predecessors(size: int) -> List:
+def gen_k1_graph_in(size):
     """
-    Generate predecessors for K1 graph
+    Generate K1 graph input
 
     :param size: size of graph
     """
-    graph = gen_graph(size, -1)
+    input_graph = f"{size} {size}"
+    for i in range(size // 2):
+        input_graph += f" {i*2} {i*2+1} 1"
+        input_graph += f" {i*2+1} {i*2} 1"
+    return input_graph
+
+
+def gen_k1_predecessors_out(size: int) -> List:
+    """
+    Generate predecessors for K1 graph output
+
+    :param size: size of graph
+    """
+    graph = gen_graph_out(size, -1)
     for i in range(size // 2):
         graph[2 * i][2 * i + 1] = 2 * i
         graph[2 * i + 1][2 * i] = 2 * i + 1
     return graph
 
 
-def gen_kn_predecessors(size: int) -> List:
+def gen_kn_predecessors_out(size: int) -> List:
     """
-    Generate predecessors for Kn graph
+    Generate predecessors for Kn graph output
 
     :param size: size of graph
     """
-    graph = gen_graph(size, -1)
+    graph = gen_graph_out(size, -1)
     for i in range(size):
         for j in range(size):
             if i != j:
