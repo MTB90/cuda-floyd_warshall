@@ -12,7 +12,7 @@ from test_apsp.helpers import APSP
 from test_apsp.helpers import execute_algorithm
 from test_apsp.helpers import gen_graph_out
 from test_apsp.helpers import gen_k1_predecessors_out, gen_k1_graph_out, gen_k1_graph_in
-from test_apsp.helpers import gen_kn_predecessors_out
+from test_apsp.helpers import gen_kn_predecessors_out, get_kn_graph_in
 
 
 class TestBasic(TestCase):
@@ -57,21 +57,13 @@ class TestBasic(TestCase):
         self.assertListEqual(data['predecessors'], gen_graph_out(100, -1))
 
     def test_GIVEN_graph_k1_WHEN_naive_fw_THEN_return_k1_result_path(self):
-        input_graph = gen_k1_graph_in(100)
-
-        data, stderr = execute_algorithm(self.exec_path, APSP.NAIVE_FW, input_graph)
+        data, stderr = execute_algorithm(self.exec_path, APSP.NAIVE_FW, gen_k1_graph_in(100))
         self.assertEqual(stderr, '')
         self.assertListEqual(data['graph'], gen_k1_graph_out(100))
         self.assertListEqual(data['predecessors'], gen_k1_predecessors_out(100))
 
     def test_GIVEN_graph_kn_WHEN_naive_fw_THEN_return_kn_result_path(self):
-        input_graph = "10 100"
-        for i in range(10):
-            for j in range(10):
-                if j != i:
-                    input_graph += f" {i} {j} 1"
-
-        data, stderr = execute_algorithm(self.exec_path, APSP.NAIVE_FW, input_graph)
+        data, stderr = execute_algorithm(self.exec_path, APSP.NAIVE_FW, get_kn_graph_in(10))
         self.assertEqual(stderr, '')
         self.assertListEqual(data['graph'], gen_graph_out(10, 1, 0))
         self.assertListEqual(data['predecessors'], gen_kn_predecessors_out(10))
@@ -96,20 +88,13 @@ class TestBasic(TestCase):
         self.assertListEqual(data['predecessors'], gen_graph_out(100, -1))
 
     def test_GIVEN_graph_k1_WHEN_cuda_naive_fw_THEN_return_k1_result_path(self):
-        input_graph = gen_k1_graph_in(100)
-        data, stderr = execute_algorithm(self.exec_path, APSP.CUDA_NAIVE_FW, input_graph)
+        data, stderr = execute_algorithm(self.exec_path, APSP.CUDA_NAIVE_FW, gen_k1_graph_in(100))
         self.assertEqual(stderr, '')
         self.assertListEqual(data['graph'], gen_k1_graph_out(100))
         self.assertListEqual(data['predecessors'], gen_k1_predecessors_out(100))
 
     def test_GIVEN_graph_kn_WHEN_cuda_naive_fw_THEN_return_kn_result_path(self):
-        input_graph = "10 100"
-        for i in range(10):
-            for j in range(10):
-                if j != i:
-                    input_graph += f" {i} {j} 1"
-
-        data, stderr = execute_algorithm(self.exec_path, APSP.CUDA_NAIVE_FW, input_graph)
+        data, stderr = execute_algorithm(self.exec_path, APSP.CUDA_NAIVE_FW, get_kn_graph_in(10))
         self.assertEqual(stderr, '')
         self.assertListEqual(data['graph'], gen_graph_out(10, 1, 0))
         self.assertListEqual(data['predecessors'], gen_kn_predecessors_out(10))

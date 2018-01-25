@@ -94,3 +94,17 @@ def gen_kn_predecessors_out(size: int) -> List:
             if i != j:
                 graph[i][j] = i
     return graph
+
+
+def get_kn_graph_in(size):
+    """
+    Generate Kn graph input
+
+    :param size: size of graph
+    """
+    input_graph = f"{size} {size*size}"
+    for i in range(size):
+        for j in range(size):
+            if j != i:
+                input_graph += f" {i} {j} 1"
+    return input_graph
