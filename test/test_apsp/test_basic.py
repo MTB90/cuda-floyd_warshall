@@ -12,7 +12,8 @@ from test_apsp.helpers import APSP
 from test_apsp.helpers import execute_algorithm
 from test_apsp.helpers import gen_graph_out
 from test_apsp.helpers import gen_k1_predecessors_out, gen_k1_graph_out, gen_k1_graph_in
-from test_apsp.helpers import gen_kn_predecessors_out, get_kn_graph_in
+from test_apsp.helpers import gen_kn_predecessors_out, gen_kn_graph_in
+from test_apsp.helpers import gen_graph_dicircle_in, gen_kn_graph_for_dcircle_out, gen_kn_pred_for_dcircle_out
 
 
 class TestBasic(TestCase):
@@ -63,17 +64,16 @@ class TestBasic(TestCase):
         self.assertListEqual(data['predecessors'], gen_k1_predecessors_out(100))
 
     def test_GIVEN_graph_kn_WHEN_naive_fw_THEN_return_kn_result_path(self):
-        data, stderr = execute_algorithm(self.exec_path, APSP.NAIVE_FW, get_kn_graph_in(10))
+        data, stderr = execute_algorithm(self.exec_path, APSP.NAIVE_FW, gen_kn_graph_in(10))
         self.assertEqual(stderr, '')
         self.assertListEqual(data['graph'], gen_graph_out(10, 1, 0))
         self.assertListEqual(data['predecessors'], gen_kn_predecessors_out(10))
 
     def test_GIVEN_graph_dicircle_WHEN_naive_fw_THEN_return_kn_correct_result_path(self):
-        vertices = 10
-        circle_graph = "{vertices} {vertices}"
-        for edge in range(vertices - 1):
-            circle_graph += f" {edge} {edge+1} 1"
-        circle_graph += f" {vertices-1} {0} 1"
+        data, stderr = execute_algorithm(self.exec_path, APSP.NAIVE_FW, gen_graph_dicircle_in(100))
+        self.assertEqual(stderr, '')
+        self.assertListEqual(data['graph'], gen_kn_graph_for_dcircle_out(100))
+        self.assertListEqual(data['predecessors'], gen_kn_pred_for_dcircle_out(100))
 
     def test_GIVEN_graph_empty_WHEN_cuda_naive_fw_THEN_return_result_empty(self):
         result, stderr = execute_algorithm(self.exec_path, APSP.CUDA_NAIVE_FW, "0 0")
@@ -94,10 +94,13 @@ class TestBasic(TestCase):
         self.assertListEqual(data['predecessors'], gen_k1_predecessors_out(100))
 
     def test_GIVEN_graph_kn_WHEN_cuda_naive_fw_THEN_return_kn_result_path(self):
-        data, stderr = execute_algorithm(self.exec_path, APSP.CUDA_NAIVE_FW, get_kn_graph_in(10))
+        data, stderr = execute_algorithm(self.exec_path, APSP.CUDA_NAIVE_FW, gen_kn_graph_in(10))
         self.assertEqual(stderr, '')
         self.assertListEqual(data['graph'], gen_graph_out(10, 1, 0))
         self.assertListEqual(data['predecessors'], gen_kn_predecessors_out(10))
 
     def test_GIVEN_graph_dicircle_WHEN_cuda_naive_fw_THEN_return_kn_correct_result_path(self):
-        pass
+        data, stderr = execute_algorithm(self.exec_path, APSP.CUDA_NAIVE_FW, gen_graph_dicircle_in(100))
+        self.assertEqual(stderr, '')
+        self.assertListEqual(data['graph'], gen_kn_graph_for_dcircle_out(100))
+        self.assertListEqual(data['predecessors'], gen_kn_pred_for_dcircle_out(100))
