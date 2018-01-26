@@ -28,19 +28,20 @@
  *
  * @param u: Index of vertex u
  * @param nvertex: Number of all vertex in graph
+ * @param pitch:
  * @param graph: Array of graph with distance between vertex on device
  * @param pred: Array of predecessors for a graph on device
  */
 static __global__
-void _naive_fw_kernel(const int u, const int nvertex, int* const graph, int* const pred) {
+void _naive_fw_kernel(const int u, size_t pitch, const int nvertex, int* const graph, int* const pred) {
     int x = blockDim.x * blockIdx.x + threadIdx.x;
     int y = blockDim.y * blockIdx.y + threadIdx.y;
 
     if (y < nvertex && x < nvertex) {
-        int indexYX = y * nvertex + x;
-        int indexUX = u * nvertex + x;
+        int indexYX = y * pitch + x;
+        int indexUX = u * pitch + x;
 
-        int newPath = graph[y * nvertex + u] + graph[indexUX];
+        int newPath = graph[y * pitch + u] + graph[indexUX];
         int oldPath = graph[indexYX];
         if (oldPath > newPath) {
             graph[indexYX] = newPath;
@@ -54,18 +55,26 @@ void _naive_fw_kernel(const int u, const int nvertex, int* const graph, int* con
  * @param dataHost: Reference to unique ptr to graph data with allocated fields on host
  * @param graphDevice: Pointer to array of graph with distance between vertex on device
  * @param predDevice: Pointer to array of predecessors for a graph on device
+ *
+ * @return: Pitch for allocation
  */
 static
-void _cudaMoveMemoryToDevice(const std::unique_ptr<graphAPSPTopology>& hostData, int **graphDevice, int **predDevice) {
-    int size = hostData->nvertex * hostData->nvertex * sizeof(int);
+size_t _cudaMoveMemoryToDevice(const std::unique_ptr<graphAPSPTopology>& dataHost, int **graphDevice, int **predDevice) {
+    size_t height = dataHost->nvertex;
+    size_t width = height * sizeof(int);
+    size_t pitch;
 
     // Allocate GPU buffers for matrix of shortest paths d(G) and predecessors p(G)
-    HANDLE_ERROR(cudaMalloc((void**)graphDevice, size));
-    HANDLE_ERROR(cudaMalloc((void**)predDevice, size));
+    HANDLE_ERROR(cudaMallocPitch(graphDevice, &pitch, width, height));
+    HANDLE_ERROR(cudaMallocPitch(predDevice, &pitch, width, height));
 
     // Copy input from host memory to GPU buffers and
-    HANDLE_ERROR(cudaMemcpy(*graphDevice, hostData->graph.get(), size, cudaMemcpyHostToDevice));
-    HANDLE_ERROR(cudaMemcpy(*predDevice, hostData->pred.get(), size, cudaMemcpyHostToDevice));
+    HANDLE_ERROR(cudaMemcpy2D(*graphDevice, pitch,
+            dataHost->graph.get(), width, width, height, cudaMemcpyHostToDevice));
+    HANDLE_ERROR(cudaMemcpy2D(*predDevice, pitch,
+            dataHost->pred.get(), width, width, height, cudaMemcpyHostToDevice));
+
+    return pitch;
 }
 
 /**
@@ -74,12 +83,15 @@ void _cudaMoveMemoryToDevice(const std::unique_ptr<graphAPSPTopology>& hostData,
  * @param graphDevice: Array of graph with distance between vertex on device
  * @param predDevice: Array of predecessors for a graph on device
  * @param dataHost: Reference to unique ptr to graph data with allocated fields on host
+ * @param pitch: Pitch for allocation
  */
 static
-void _cudaMoveMemoryToHost(int *graphDevice, int *predDevice, const std::unique_ptr<graphAPSPTopology>& dataHost) {
-    int size = dataHost->nvertex * dataHost->nvertex * sizeof(int);
-    HANDLE_ERROR(cudaMemcpy(dataHost->pred.get(), predDevice, size, cudaMemcpyDeviceToHost));
-    HANDLE_ERROR(cudaMemcpy(dataHost->graph.get(), graphDevice, size, cudaMemcpyDeviceToHost));
+void _cudaMoveMemoryToHost(int *graphDevice, int *predDevice, const std::unique_ptr<graphAPSPTopology>& dataHost, size_t pitch) {
+    size_t height = dataHost->nvertex;
+    size_t width = height * sizeof(int);
+
+    HANDLE_ERROR(cudaMemcpy2D(dataHost->pred.get(), width, predDevice, pitch, width, height, cudaMemcpyDeviceToHost));
+    HANDLE_ERROR(cudaMemcpy2D(dataHost->graph.get(), width, graphDevice, pitch, width, height, cudaMemcpyDeviceToHost));
 
     HANDLE_ERROR(cudaFree(predDevice));
     HANDLE_ERROR(cudaFree(graphDevice));
@@ -102,11 +114,11 @@ void cudaNaiveFW(const std::unique_ptr<graphAPSPTopology>& dataHost) {
     // Move data from host do device
     int *graphDevice;
     int *predDevice;
-    _cudaMoveMemoryToDevice(dataHost, &graphDevice, &predDevice);
+    size_t pitch = _cudaMoveMemoryToDevice(dataHost, &graphDevice, &predDevice);
 
     cudaFuncSetCacheConfig(_naive_fw_kernel, cudaFuncCachePreferL1);
     for(int u=0; u < nvertex; ++u) {
-        _naive_fw_kernel<<<dimGrid, dimBlock>>>(u, nvertex, graphDevice, predDevice);
+        _naive_fw_kernel<<<dimGrid, dimBlock>>>(u, pitch / sizeof(int), nvertex, graphDevice, predDevice);
     }
 
     // Check for any errors launching the kernel
@@ -116,7 +128,7 @@ void cudaNaiveFW(const std::unique_ptr<graphAPSPTopology>& dataHost) {
     HANDLE_ERROR(cudaDeviceSynchronize());
 
     // Move data from device to host
-    _cudaMoveMemoryToHost(graphDevice, predDevice, dataHost);
+    _cudaMoveMemoryToHost(graphDevice, predDevice, dataHost, pitch);
 }
 
 /**
