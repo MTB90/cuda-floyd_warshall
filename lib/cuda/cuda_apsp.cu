@@ -51,6 +51,21 @@ void _naive_fw_kernel(const int u, size_t pitch, const int nvertex, int* const g
 }
 
 /**
+ * Blocked CUDA kernel implementation algorithm Floyd Wharshall for APSP
+ *
+ * @param u: Index of vertex u
+ * @param nvertex: Number of all vertex in graph
+ * @param pitch:
+ * @param graph: Array of graph with distance between vertex on device
+ * @param pred: Array of predecessors for a graph on device
+ */
+static __global__
+void _blocked_fw_dependent_ph(const int block, size_t pitch, const int nvertex, int* const graph, int* const pred) {
+    int x = blockDim.x * blockIdx.x + threadIdx.x;
+    int y = blockDim.y * blockIdx.y + threadIdx.y;
+}
+
+/**
  * Allocate memory on device and copy memory from host to device
  * @param dataHost: Reference to unique ptr to graph data with allocated fields on host
  * @param graphDevice: Pointer to array of graph with distance between vertex on device
@@ -111,23 +126,17 @@ void cudaNaiveFW(const std::unique_ptr<graphAPSPTopology>& dataHost) {
     dim3 dimGrid((nvertex - 1) / BLOCK_WIDTH + 1, (nvertex - 1) / BLOCK_WIDTH + 1, 1);
     dim3 dimBlock(BLOCK_WIDTH, BLOCK_WIDTH, 1);
 
-    // Move data from host do device
-    int *graphDevice;
-    int *predDevice;
+    int *graphDevice, *predDevice;
     size_t pitch = _cudaMoveMemoryToDevice(dataHost, &graphDevice, &predDevice);
 
     cudaFuncSetCacheConfig(_naive_fw_kernel, cudaFuncCachePreferL1);
-    for(int u=0; u < nvertex; ++u) {
-        _naive_fw_kernel<<<dimGrid, dimBlock>>>(u, pitch / sizeof(int), nvertex, graphDevice, predDevice);
+    for(int vertex = 0; vertex < nvertex; ++vertex) {
+        _naive_fw_kernel<<<dimGrid, dimBlock>>>(vertex, pitch / sizeof(int), nvertex, graphDevice, predDevice);
     }
 
     // Check for any errors launching the kernel
     HANDLE_ERROR(cudaGetLastError());
-
-    // cudaDeviceSynchronize waits for the kernel to finish
     HANDLE_ERROR(cudaDeviceSynchronize());
-
-    // Move data from device to host
     _cudaMoveMemoryToHost(graphDevice, predDevice, dataHost, pitch);
 }
 
@@ -137,5 +146,25 @@ void cudaNaiveFW(const std::unique_ptr<graphAPSPTopology>& dataHost) {
  * @param data: unique ptr to graph data with allocated fields on host
  */
 void cudaBlockedFW(const std::unique_ptr<graphAPSPTopology>& dataHost) {
-    // TODO not implemented yet
+    HANDLE_ERROR(cudaSetDevice(0));
+    int nvertex = dataHost->nvertex;
+    int *graphDevice, *predDevice;
+    size_t pitch = _cudaMoveMemoryToDevice(dataHost, &graphDevice, &predDevice);
+
+    dim3 gridDependedntPhase(1 ,1, 1);
+    dim3 blockDependentPhase(BLOCK_WIDTH, BLOCK_WIDTH, 1);
+
+    for(int round = 0; round < ; ++round) {
+        // Start dependent phase
+        _blocked_fw_dependent_ph<<<dimGrid, dimBlock>>>(block, pitch / sizeof(int), nvertex, graphDevice, predDevice);
+
+        // Start partially dependent phase
+
+        // Start independent phase
+    }
+
+    // Check for any errors launching the kernel
+    HANDLE_ERROR(cudaGetLastError());
+    HANDLE_ERROR(cudaDeviceSynchronize());
+    _cudaMoveMemoryToHost(graphDevice, predDevice, dataHost, pitch);
 }
