@@ -31,7 +31,7 @@
  *
  * @param u: Index of vertex u
  * @param nvertex: Number of all vertex in graph
- * @param pitch:
+ * @param pitch: Length of row in memory
  * @param graph: Array of graph with distance between vertex on device
  * @param pred: Array of predecessors for a graph on device
  */
@@ -58,7 +58,7 @@ void _naive_fw_kernel(const int u, size_t pitch, const int nvertex, int* const g
  *
  * @param u: Index of vertex u
  * @param nvertex: Number of all vertex in graph
- * @param pitch:
+ * @param pitch: Length of row in memory
  * @param graph: Array of graph with distance between vertex on device
  * @param pred: Array of predecessors for a graph on device
  */
