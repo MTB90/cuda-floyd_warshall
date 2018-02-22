@@ -120,10 +120,10 @@ void printDataJson(const unique_ptr<graphAPSPTopology>& graph, int time, int max
         cout << "],\n";
     };
 
-//    cout << "{\n    \"graph\":\n";
-//    printMatrix(graph->graph, graph->nvertex, maxValue);
-//    cout << "    \"predecessors\": \n";
-//    printMatrix(graph->pred, graph->nvertex, maxValue);
+    cout << "{\n    \"graph\":\n";
+    printMatrix(graph->graph, graph->nvertex, maxValue);
+    cout << "    \"predecessors\": \n";
+    printMatrix(graph->pred, graph->nvertex, maxValue);
     cout << "    \"compute_time\": " << time << "\n}";
 }
 
