@@ -3,10 +3,13 @@
 #include "device_launch_parameters.h"
 #include "cuda_apsp.cuh"
 
-// CONSTS for compute capability
-#define THREAD_WIDTH 2
-#define BLOCK_WIDTH 16
+// CONSTS for Naive FW
+#define BLOCK_SIZE 16
 
+
+#define MAX_BLOCK_SIZE 32
+#define MAX_VIRTUAL_BLOCK_SIZE 64
+#define VIRTUAL_THREAD_SIZE 4
 
 /**
  * CUDA handle error, if error occurs print message and exit program
@@ -61,8 +64,16 @@ void _naive_fw_kernel(const int u, size_t pitch, const int nvertex, int* const g
  */
 static __global__
 void _blocked_fw_dependent_ph(const int block, size_t pitch, const int nvertex, int* const graph, int* const pred) {
-    int x = blockDim.x * blockIdx.x + threadIdx.x;
-    int y = blockDim.y * blockIdx.y + threadIdx.y;
+    __shared__ int cacheGraph[MAX_VIRTUAL_BLOCK_SIZE][MAX_VIRTUAL_BLOCK_SIZE];
+    __shared__ int cachePred[MAX_VIRTUAL_BLOCK_SIZE][MAX_VIRTUAL_BLOCK_SIZE];
+
+    // Load data
+    for (int thread; thread > VIRTUAL_THREAD_SIZE; ++thread) {
+
+    }
+
+    // Synchronize to make sure the all value are loaded in block
+    __syncthreads();
 }
 
 /**
@@ -123,8 +134,8 @@ void cudaNaiveFW(const std::unique_ptr<graphAPSPTopology>& dataHost) {
     int nvertex = dataHost->nvertex;
 
     // Initialize the grid and block dimensions here
-    dim3 dimGrid((nvertex - 1) / BLOCK_WIDTH + 1, (nvertex - 1) / BLOCK_WIDTH + 1, 1);
-    dim3 dimBlock(BLOCK_WIDTH, BLOCK_WIDTH, 1);
+    dim3 dimGrid((nvertex - 1) / BLOCK_SIZE + 1, (nvertex - 1) / BLOCK_SIZE + 1, 1);
+    dim3 dimBlock(BLOCK_SIZE, BLOCK_SIZE, 1);
 
     int *graphDevice, *predDevice;
     size_t pitch = _cudaMoveMemoryToDevice(dataHost, &graphDevice, &predDevice);
@@ -152,11 +163,14 @@ void cudaBlockedFW(const std::unique_ptr<graphAPSPTopology>& dataHost) {
     size_t pitch = _cudaMoveMemoryToDevice(dataHost, &graphDevice, &predDevice);
 
     dim3 gridDependedntPhase(1 ,1, 1);
-    dim3 blockDependentPhase(BLOCK_WIDTH, BLOCK_WIDTH, 1);
+    dim3 blockDependentPhase(MAX_BLOCK_SIZE, MAX_BLOCK_SIZE, 1);
 
-    for(int round = 0; round < ; ++round) {
+    int numBlock = nvertex / MAX_VIRTUAL_BLOCK_SIZE;
+
+    for(int blockID = 0; blockID < numBlock; ++blockID) {
         // Start dependent phase
-        _blocked_fw_dependent_ph<<<dimGrid, dimBlock>>>(block, pitch / sizeof(int), nvertex, graphDevice, predDevice);
+        _blocked_fw_dependent_ph<<<gridDependedntPhase, blockDependentPhase>>>
+                (blockID, pitch / sizeof(int), nvertex, graphDevice, predDevice);
 
         // Start partially dependent phase
 
