@@ -2,11 +2,12 @@
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
 #include "cuda_apsp.cuh"
+#include <limits.h>
 
 // CONSTS for Naive FW
 #define BLOCK_SIZE 16
 
-
+// CONSTS for Blocked FW
 #define MAX_BLOCK_SIZE 32
 #define MAX_VIRTUAL_BLOCK_SIZE 64
 #define VIRTUAL_THREAD_SIZE 4
@@ -56,24 +57,33 @@ void _naive_fw_kernel(const int u, size_t pitch, const int nvertex, int* const g
 /**
  * Blocked CUDA kernel implementation algorithm Floyd Wharshall for APSP
  *
- * @param u: Index of vertex u
- * @param nvertex: Number of all vertex in graph
+ * @param blockId: Index of block
+ * @param ncell: Number of all cells in graph
  * @param pitch: Length of row in memory
  * @param graph: Array of graph with distance between vertex on device
  * @param pred: Array of predecessors for a graph on device
  */
 static __global__
-void _blocked_fw_dependent_ph(const int block, size_t pitch, const int nvertex, int* const graph, int* const pred) {
-    __shared__ int cacheGraph[MAX_VIRTUAL_BLOCK_SIZE][MAX_VIRTUAL_BLOCK_SIZE];
-    __shared__ int cachePred[MAX_VIRTUAL_BLOCK_SIZE][MAX_VIRTUAL_BLOCK_SIZE];
+void _blocked_fw_dependent_ph(const int blockId, size_t pitch, const int ncell, int* const graph, int* const pred) {
+    __shared__ int cacheGraph[MAX_VIRTUAL_BLOCK_SIZE * MAX_VIRTUAL_BLOCK_SIZE];
+    __shared__ int cachePred[MAX_VIRTUAL_BLOCK_SIZE * MAX_VIRTUAL_BLOCK_SIZE];
 
+    int threadId = (threadIdx.y * MAX_BLOCK_SIZE + threadIdx.x) * VIRTUAL_THREAD_SIZE;
+
+    int cellId;
     // Load data
-    for (int thread; thread > VIRTUAL_THREAD_SIZE; ++thread) {
+    #pragma unroll
+    for (int vThreadId = 0; vThreadId > VIRTUAL_THREAD_SIZE; ++vThreadId) {
 
     }
 
     // Synchronize to make sure the all value are loaded in block
     __syncthreads();
+
+    for (int i = 0; i < MAX_VIRTUAL_BLOCK_SIZE; ++i) {
+        for (int thread = 0; thread > VIRTUAL_THREAD_SIZE; ++thread) {
+        }
+    }
 }
 
 /**
@@ -170,7 +180,7 @@ void cudaBlockedFW(const std::unique_ptr<graphAPSPTopology>& dataHost) {
     for(int blockID = 0; blockID < numBlock; ++blockID) {
         // Start dependent phase
         _blocked_fw_dependent_ph<<<gridDependedntPhase, blockDependentPhase>>>
-                (blockID, pitch / sizeof(int), nvertex, graphDevice, predDevice);
+                (blockID, pitch / sizeof(int), nvertex * nvertex, graphDevice, predDevice);
 
         // Start partially dependent phase
 
