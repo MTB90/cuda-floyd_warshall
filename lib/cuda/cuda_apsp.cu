@@ -56,6 +56,22 @@ void _naive_fw_kernel(const int u, size_t pitch, const int nvertex, int* const g
  */
 static __global__
 void _blocked_fw_dependent_ph(const int blockId, size_t pitch, const int nvertex, int* const graph, int* const pred) {
+    __shared__ int cacheGraph[MAX_VIRTUAL_BLOCK_SIZE * MAX_VIRTUAL_BLOCK_SIZE];
+    __shared__ int cachePred[MAX_VIRTUAL_BLOCK_SIZE * MAX_VIRTUAL_BLOCK_SIZE];
+
+    const int threadId = (threadIdx.y * MAX_BLOCK_SIZE + threadIdx.x) * VIRTUAL_THREAD_SIZE;
+    const int cellIdy = MAX_VIRTUAL_BLOCK_SIZE * blockId + threadId / MAX_VIRTUAL_BLOCK_SIZE;
+    const int cellIdx = MAX_VIRTUAL_BLOCK_SIZE * blockId + threadId % MAX_VIRTUAL_BLOCK_SIZE;
+
+    const int cellId = cellIdy * pitch + cellIdx;
+
+    if (cellIdy < nvertex && cellIdx < nvertex) {
+        cacheGraph[threadId] = graph[cellId];
+        cachePred[threadId] = pred[cellId];
+    } else {
+        cacheGraph[threadId] = MAX_DISTANCE;
+        cachePred[threadId] = -1;
+    }
 }
 
 /**
