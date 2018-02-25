@@ -14,8 +14,8 @@
 
 // CONSTS for Blocked FW
 #define MAX_BLOCK_SIZE 32
-#define MAX_VIRTUAL_BLOCK_SIZE 64
-#define VIRTUAL_THREAD_SIZE 4
+#define MAX_VIRTUAL_BLOCK_SIZE 32
+#define VIRTUAL_THREAD_SIZE 1
 
 /**
  * Naive implementation of Floyd Warshall algorithm in CUDA
