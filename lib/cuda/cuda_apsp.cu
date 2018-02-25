@@ -3,7 +3,6 @@
 #include "device_launch_parameters.h"
 #include "cuda_apsp.cuh"
 
-
 /**
  * CUDA handle error, if error occurs print message and exit program
 *
@@ -149,7 +148,7 @@ void cudaBlockedFW(const std::unique_ptr<graphAPSPTopology>& dataHost) {
     dim3 gridDependedntPhase(1 ,1, 1);
     dim3 blockDependentPhase(MAX_BLOCK_SIZE, MAX_BLOCK_SIZE, 1);
 
-    int numBlock = nvertex / MAX_VIRTUAL_BLOCK_SIZE;
+    int numBlock = (nvertex - 1) / MAX_VIRTUAL_BLOCK_SIZE + 1;
 
     for(int blockID = 0; blockID < numBlock; ++blockID) {
         // Start dependent phase
