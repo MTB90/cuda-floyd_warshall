@@ -11,9 +11,6 @@
 
 // CONSTS for CUDA FW
 #define BLOCK_SIZE 16
-#define MAX_BLOCK_SIZE 32
-#define MAX_VIRTUAL_BLOCK_SIZE 32
-#define VIRTUAL_THREAD_SIZE 1
 
 /**
  * Naive implementation of Floyd Warshall algorithm in CUDA

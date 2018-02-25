@@ -56,21 +56,47 @@ void _naive_fw_kernel(const int u, size_t pitch, const int nvertex, int* const g
  */
 static __global__
 void _blocked_fw_dependent_ph(const int blockId, size_t pitch, const int nvertex, int* const graph, int* const pred) {
-    __shared__ int cacheGraph[MAX_VIRTUAL_BLOCK_SIZE * MAX_VIRTUAL_BLOCK_SIZE];
-    __shared__ int cachePred[MAX_VIRTUAL_BLOCK_SIZE * MAX_VIRTUAL_BLOCK_SIZE];
+    __shared__ int cacheGraph[BLOCK_SIZE][BLOCK_SIZE];
+    __shared__ int cachePred[BLOCK_SIZE][BLOCK_SIZE];
 
-    const int threadId = (threadIdx.y * MAX_BLOCK_SIZE + threadIdx.x) * VIRTUAL_THREAD_SIZE;
-    const int cellIdy = MAX_VIRTUAL_BLOCK_SIZE * blockId + threadId / MAX_VIRTUAL_BLOCK_SIZE;
-    const int cellIdx = MAX_VIRTUAL_BLOCK_SIZE * blockId + threadId % MAX_VIRTUAL_BLOCK_SIZE;
+    const int idx = threadIdx.x;
+    const int idy = threadIdx.y;
 
-    const int cellId = cellIdy * pitch + cellIdx;
+    const int v1 = BLOCK_SIZE * blockId + idy;
+    const int v2 = BLOCK_SIZE * blockId + idx;
 
-    if (cellIdy < nvertex && cellIdx < nvertex) {
-        cacheGraph[threadId] = graph[cellId];
-        cachePred[threadId] = pred[cellId];
+    const int cellId = v1 * pitch + v2;
+
+
+    if (v1 < nvertex && v2 < nvertex) {
+        cacheGraph[idy][idx] = graph[cellId];
+        cachePred[idy][idx] = pred[cellId];
     } else {
-        cacheGraph[threadId] = MAX_DISTANCE;
-        cachePred[threadId] = -1;
+        cacheGraph[idy][idx] = MAX_DISTANCE;
+        cachePred[idy][idx] = -1;
+    }
+
+
+    // Synchronize to make sure the all value are loaded in block
+    __syncthreads();
+
+    int newPath;
+    int newPred;
+
+    #pragma unroll
+    for (int u = 0; u < BLOCK_SIZE; ++u) {
+        newPath = cacheGraph[idy][u] + cacheGraph[u][idx];
+
+        // Synchronize before calculate new value
+        __syncthreads();
+        if (newPath < cacheGraph[idy][idx]) {
+            cacheGraph[idy][idx] = newPath;
+            newPred = cachePred[u][idx];
+        }
+
+        // Synchronize to make sure that all value are current
+        __syncthreads();
+        cachePred[idy][idx] = newPred;
     }
 }
 
@@ -161,9 +187,17 @@ void cudaBlockedFW(const std::unique_ptr<graphAPSPTopology>& dataHost) {
     size_t pitch = _cudaMoveMemoryToDevice(dataHost, &graphDevice, &predDevice);
 
     dim3 gridDependedntPhase(1 ,1, 1);
-    dim3 blockDependentPhase(MAX_BLOCK_SIZE, MAX_BLOCK_SIZE, 1);
+    dim3 blockDependentPhase(BLOCK_SIZE, BLOCK_SIZE, 1);
 
-    int numBlock = (nvertex - 1) / MAX_VIRTUAL_BLOCK_SIZE + 1;
+    int numBlock = (nvertex - 1) / BLOCK_SIZE + 1;
+
+    // Initialize CUDA Event
+    cudaEvent_t start,stop;
+    float elapsedTime;
+
+    cudaEventCreate(&start);
+    cudaEventCreate(&stop);
+    cudaEventRecord(start,0);
 
     for(int blockID = 0; blockID < numBlock; ++blockID) {
         // Start dependent phase
@@ -174,6 +208,16 @@ void cudaBlockedFW(const std::unique_ptr<graphAPSPTopology>& dataHost) {
 
         // Start independent phase
     }
+
+    // Finish recording
+    cudaEventRecord(stop,0);
+    cudaEventSynchronize(stop);
+
+    // Calculate elasped time
+    cudaEventElapsedTime(&elapsedTime,start,stop);
+
+    elapsedTime /= 1000;
+    printf ("Time : %f s\n", elapsedTime);
 
     // Check for any errors launching the kernel
     HANDLE_ERROR(cudaGetLastError());
