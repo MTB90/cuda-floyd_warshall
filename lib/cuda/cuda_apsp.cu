@@ -49,14 +49,13 @@ void _naive_fw_kernel(const int u, size_t pitch, const int nvertex, int* const g
  * Blocked CUDA kernel implementation algorithm Floyd Wharshall for APSP
  *
  * @param blockId: Index of block
- * @param ncell: Number of all cells in graph
+ * @param nvertex: Number of all vertex in graph
  * @param pitch: Length of row in memory
  * @param graph: Array of graph with distance between vertex on device
  * @param pred: Array of predecessors for a graph on device
  */
 static __global__
-void _blocked_fw_dependent_ph(const int blockId, size_t pitch, const int ncell, int* const graph, int* const pred) {
-
+void _blocked_fw_dependent_ph(const int blockId, size_t pitch, const int nvertex, int* const graph, int* const pred) {
 }
 
 /**
@@ -153,7 +152,7 @@ void cudaBlockedFW(const std::unique_ptr<graphAPSPTopology>& dataHost) {
     for(int blockID = 0; blockID < numBlock; ++blockID) {
         // Start dependent phase
         _blocked_fw_dependent_ph<<<gridDependedntPhase, blockDependentPhase>>>
-                (blockID, pitch / sizeof(int), nvertex * nvertex, graphDevice, predDevice);
+                (blockID, pitch / sizeof(int), nvertex, graphDevice, predDevice);
 
         // Start partially dependent phase
 

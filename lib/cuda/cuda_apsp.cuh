@@ -9,10 +9,8 @@
 
 #include "../apsp.h"
 
-// CONSTS for Naive FW
+// CONSTS for CUDA FW
 #define BLOCK_SIZE 16
-
-// CONSTS for Blocked FW
 #define MAX_BLOCK_SIZE 32
 #define MAX_VIRTUAL_BLOCK_SIZE 32
 #define VIRTUAL_THREAD_SIZE 1
