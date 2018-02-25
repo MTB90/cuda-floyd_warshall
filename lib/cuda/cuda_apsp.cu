@@ -2,15 +2,7 @@
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
 #include "cuda_apsp.cuh"
-#include <limits.h>
 
-// CONSTS for Naive FW
-#define BLOCK_SIZE 16
-
-// CONSTS for Blocked FW
-#define MAX_BLOCK_SIZE 32
-#define MAX_VIRTUAL_BLOCK_SIZE 64
-#define VIRTUAL_THREAD_SIZE 4
 
 /**
  * CUDA handle error, if error occurs print message and exit program
