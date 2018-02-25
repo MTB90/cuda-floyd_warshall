@@ -8,7 +8,6 @@
 #include <memory>
 #include <ctime>
 #include <algorithm>
-#include <limits>
 #include <chrono>
 #include <unistd.h>
 #include "lib/apsp.h"
@@ -128,7 +127,7 @@ void printDataJson(const unique_ptr<graphAPSPTopology>& graph, int time, int max
 }
 
 int main(int argc, char **argv) {
-    int maxValue = numeric_limits<int>::max() / 2;
+    int maxValue = MAX_DISTANCE;
     auto algorithm = parseCommand(argc, argv);
     auto graph = readData(maxValue);
 

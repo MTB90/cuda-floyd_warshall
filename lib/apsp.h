@@ -9,6 +9,15 @@
 
 #include <memory>
 
+/* Maximum distance value for path form
+ * vertex x to vertex y means no path v1 -> v2.
+ * This value should be MAX_INT / 2 - 1
+ * because we should be able to compare path v1 -> v2 with
+ * path v1 -> u -> v2 so adding to value of paths v1 -> u and
+ * u -> v2 should be smaller than maximum int value
+ */
+#define MAX_DISTANCE 1 << 30 - 1
+
 /* ASPS algorithms types */
 typedef enum {
     NAIVE_FW = 0,
