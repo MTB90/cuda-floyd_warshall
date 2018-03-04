@@ -47,6 +47,7 @@ void _naive_fw_kernel(const int u, size_t pitch, const int nvertex, int* const g
 
 /**
  * Blocked CUDA kernel implementation algorithm Floyd Wharshall for APSP
+ * Dependent phase 1
  *
  * @param blockId: Index of block
  * @param nvertex: Number of all vertex in graph
@@ -84,17 +85,25 @@ void _blocked_fw_dependent_ph(const int blockId, size_t pitch, const int nvertex
     #pragma unroll
     for (int u = 0; u < BLOCK_SIZE; ++u) {
         newPath = cacheGraph[idy][u] + cacheGraph[u][idx];
+
         // Synchronize before calculate new value
         __syncthreads();
         if (newPath < cacheGraph[idy][idx]) {
             cacheGraph[idy][idx] = newPath;
             newPred = cachePred[u][idx];
         }
+
         // Synchronize to make sure that all value are current
         __syncthreads();
         cachePred[idy][idx] = newPred;
     }
+
+    if (v1 < nvertex && v2 < nvertex) {
+        graph[cellId] = cacheGraph[idy][idx];
+        pred[cellId] = cachePred[idy][idx];
+    }
 }
+
 
 /**
  * Allocate memory on device and copy memory from host to device
