@@ -66,11 +66,14 @@ void _blocked_fw_dependent_ph(const int blockId, size_t pitch, const int nvertex
     const int v1 = BLOCK_SIZE * blockId + idy;
     const int v2 = BLOCK_SIZE * blockId + idx;
 
-    const int cellId = v1 * pitch + v2;
+    int newPred;
+    int newPath;
 
+    const int cellId = v1 * pitch + v2;
     if (v1 < nvertex && v2 < nvertex) {
         cacheGraph[idy][idx] = graph[cellId];
         cachePred[idy][idx] = pred[cellId];
+        newPred = cachePred[idy][idx];
     } else {
         cacheGraph[idy][idx] = MAX_DISTANCE;
         cachePred[idy][idx] = -1;
@@ -78,9 +81,6 @@ void _blocked_fw_dependent_ph(const int blockId, size_t pitch, const int nvertex
 
     // Synchronize to make sure the all value are loaded in block
     __syncthreads();
-
-    int newPath;
-    int newPred;
 
     #pragma unroll
     for (int u = 0; u < BLOCK_SIZE; ++u) {
@@ -97,6 +97,77 @@ void _blocked_fw_dependent_ph(const int blockId, size_t pitch, const int nvertex
         __syncthreads();
         cachePred[idy][idx] = newPred;
     }
+
+    if (v1 < nvertex && v2 < nvertex) {
+        graph[cellId] = cacheGraph[idy][idx];
+        pred[cellId] = cachePred[idy][idx];
+    }
+}
+
+/**
+ * Blocked CUDA kernel implementation algorithm Floyd Wharshall for APSP
+ * Partial dependent phase 2
+ *
+ * @param blockId: Index of block
+ * @param nvertex: Number of all vertex in graph
+ * @param pitch: Length of row in memory
+ * @param graph: Array of graph with distance between vertex on device
+ * @param pred: Array of predecessors for a graph on device
+ */
+static __global__
+void _blocked_fw_partial_dependent_ph(const int blockId, size_t pitch, const int nvertex, int* const graph, int* const pred) {
+    if (blockIdx.x  == blockId) return;
+
+    int idx = threadIdx.x;
+    int idy = threadIdx.y;
+
+    int v1 = BLOCK_SIZE * blockId + idy;
+    int v2 = BLOCK_SIZE * blockId + idx;
+
+    __shared__ int cacheGraphBase[BLOCK_SIZE][BLOCK_SIZE];
+    __shared__ int cachePredBase[BLOCK_SIZE][BLOCK_SIZE];
+
+    // Load base block for graph and predecessors
+    int cellId = v1 * pitch + v2;
+
+    if (v1 < nvertex && v2 < nvertex) {
+        cacheGraphBase[idy][idx] = graph[cellId];
+        cachePredBase[idy][idx] = pred[cellId];
+    } else {
+        cacheGraphBase[idy][idx] = MAX_DISTANCE;
+        cachePredBase[idy][idx] = -1;
+    }
+
+    // Load i-aligned singly dependent blocks
+    if (blockIdx.y == 0) {
+        v1 = BLOCK_SIZE * blockId + idy;
+        v2 = BLOCK_SIZE * blockIdx.x + idx;
+    } else {
+   // Load j-aligned singly dependent blocks
+        v1 = BLOCK_SIZE * blockIdx.x + idy;
+        v2 = BLOCK_SIZE * blockId + idx;
+    }
+
+    __shared__ int cacheGraph[BLOCK_SIZE][BLOCK_SIZE];
+    __shared__ int cachePred[BLOCK_SIZE][BLOCK_SIZE];
+
+    int newPath;
+    int newPred;
+
+    cellId = v1 * pitch + v2;
+    if (v1 < nvertex && v2 < nvertex) {
+        cacheGraph[idy][idx] = graph[cellId];
+        cachePred[idy][idx] = pred[cellId];
+        newPred = cachePred[idy][idx];
+    } else {
+        cacheGraph[idy][idx] = MAX_DISTANCE;
+        cachePred[idy][idx] = -1;
+    }
+
+    // Synchronize to make sure the all value are loaded in block
+    __syncthreads();
+
+    // ...
 
     if (v1 < nvertex && v2 < nvertex) {
         graph[cellId] = cacheGraph[idy][idx];
