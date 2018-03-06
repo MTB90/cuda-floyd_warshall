@@ -212,8 +212,8 @@ void _blocked_fw_partial_dependent_ph(const int blockId, size_t pitch, const int
     }
 
     if (v1 < nvertex && v2 < nvertex) {
-        graph[cellId] = cacheGraph[idy][idx];
-        pred[cellId] = cachePred[idy][idx];
+        graph[cellId] = currentPath;
+        pred[cellId] = currentPred;
     }
 }
 
