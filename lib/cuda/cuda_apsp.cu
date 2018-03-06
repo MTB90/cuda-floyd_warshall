@@ -116,10 +116,10 @@ void _blocked_fw_dependent_ph(const int blockId, size_t pitch, const int nvertex
  */
 static __global__
 void _blocked_fw_partial_dependent_ph(const int blockId, size_t pitch, const int nvertex, int* const graph, int* const pred) {
-    if (blockIdx.x  == blockId) return;
+    if (blockIdx.x == blockId) return;
 
-    int idx = threadIdx.x;
-    int idy = threadIdx.y;
+    const int idx = threadIdx.x;
+    const int idy = threadIdx.y;
 
     int v1 = BLOCK_SIZE * blockId + idy;
     int v2 = BLOCK_SIZE * blockId + idx;
@@ -140,34 +140,76 @@ void _blocked_fw_partial_dependent_ph(const int blockId, size_t pitch, const int
 
     // Load i-aligned singly dependent blocks
     if (blockIdx.y == 0) {
-        v1 = BLOCK_SIZE * blockId + idy;
         v2 = BLOCK_SIZE * blockIdx.x + idx;
     } else {
    // Load j-aligned singly dependent blocks
         v1 = BLOCK_SIZE * blockIdx.x + idy;
-        v2 = BLOCK_SIZE * blockId + idx;
     }
 
     __shared__ int cacheGraph[BLOCK_SIZE][BLOCK_SIZE];
     __shared__ int cachePred[BLOCK_SIZE][BLOCK_SIZE];
 
-    int newPath;
-    int newPred;
+    // Load current block for graph and predecessors
+    int currentPath;
+    int currentPred;
 
     cellId = v1 * pitch + v2;
     if (v1 < nvertex && v2 < nvertex) {
-        cacheGraph[idy][idx] = graph[cellId];
-        cachePred[idy][idx] = pred[cellId];
-        newPred = cachePred[idy][idx];
+        currentPath = graph[cellId];
+        currentPred = pred[cellId];
     } else {
-        cacheGraph[idy][idx] = MAX_DISTANCE;
-        cachePred[idy][idx] = -1;
+        currentPath = MAX_DISTANCE;
+        currentPred = -1;
     }
+    cacheGraph[idy][idx] = currentPath;
+    cachePred[idy][idx] = currentPred;
 
-    // Synchronize to make sure the all value are loaded in block
+    // Synchronize to make sure the all value are saved in cache
     __syncthreads();
 
-    // ...
+    int newPath;
+    // Compute i-aligned singly dependent blocks
+    if (blockIdx.y == 0) {
+        #pragma unroll
+        for (int u = 0; u < BLOCK_SIZE; ++u) {
+            newPath = cacheGraphBase[idy][u] + cacheGraph[u][idx];
+
+            if (newPath < currentPath) {
+                currentPath = newPath;
+                currentPred = cachePred[u][idx];
+            }
+            // Synchronize to make sure that all threads compare new value with old
+            __syncthreads();
+
+           // Update new values
+            cacheGraph[idy][idx] = currentPath;
+            cachePred[idy][idx] = currentPred;
+
+           // Synchronize to make sure that all threads update cache
+            __syncthreads();
+        }
+    } else {
+    // Compute j-aligned singly dependent blocks
+        #pragma unroll
+        for (int u = 0; u < BLOCK_SIZE; ++u) {
+            newPath = cacheGraph[idy][u] + cacheGraphBase[u][idx];
+
+            if (newPath < currentPath) {
+                currentPath = newPath;
+                currentPred = cachePredBase[u][idx];
+            }
+
+            // Synchronize to make sure that all threads compare new value with old
+            __syncthreads();
+
+           // Update new values
+            cacheGraph[idy][idx] = currentPath;
+            cachePred[idy][idx] = currentPred;
+
+           // Synchronize to make sure that all threads update cache
+            __syncthreads();
+        }
+    }
 
     if (v1 < nvertex && v2 < nvertex) {
         graph[cellId] = cacheGraph[idy][idx];
