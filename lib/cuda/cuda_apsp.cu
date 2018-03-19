@@ -239,19 +239,56 @@ void _blocked_fw_independent_ph(const int blockId, size_t pitch, const int nvert
 
     __shared__ int cacheGraphBaseRow[BLOCK_SIZE][BLOCK_SIZE];
     __shared__ int cacheGraphBaseCol[BLOCK_SIZE][BLOCK_SIZE];
-    __shared__ int cachePredBaseCol[BLOCK_SIZE][BLOCK_SIZE];
+    __shared__ int cachePredBaseRow[BLOCK_SIZE][BLOCK_SIZE];
 
     int v1Row = BLOCK_SIZE * blockId + idy;
     int v2Col = BLOCK_SIZE * blockId + idx;
 
     // Load data for block
+    int cellId;
+    if (v1Row < nvertex && v2 < nvertex) {
+        cellId = v1Row * pitch + v2;
 
-    // ...
+        cacheGraphBaseRow[idy][idx] = graph[cellId];
+        cachePredBaseRow[idy][idx] = pred[cellId];
+    }
+    else {
+        cacheGraphBaseRow[idy][idx] = MAX_DISTANCE;
+        cachePredBaseRow[idy][idx] = -1;
+    }
+
+    if (v1  < nvertex && v2Col < nvertex) {
+        cellId = v1 * pitch + v2Col;
+        cacheGraphBaseCol[idy][idx] = graph[cellId];
+    }
+    else {
+        cacheGraphBaseCol[idy][idx] = MAX_DISTANCE;
+    }
 
     // Synchronize to make sure the all value are loaded in virtual block
    __syncthreads();
 
+   int currentPath;
+   int currentPred;
+   int newPath;
+
    // Compute data for block
+   if (v1  < nvertex && v2 < nvertex) {
+       cellId = v1 * pitch + v2;
+       currentPath = graph[cellId];
+       currentPred = pred[cellId];
+
+        #pragma unroll
+       for (int u = 0; u < BLOCK_SIZE; ++u) {
+           newPath = cacheGraphBaseCol[idy][u] + cacheGraphBaseRow[u][idx];
+           if (currentPath > newPath) {
+               currentPath = newPath;
+               currentPred = cachePredBaseRow[u][idx];
+           }
+       }
+       graph[cellId] = currentPath;
+       pred[cellId] = currentPred;
+   }
 }
 
 /**
