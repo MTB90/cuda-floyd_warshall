@@ -217,6 +217,42 @@ void _blocked_fw_partial_dependent_ph(const int blockId, size_t pitch, const int
     }
 }
 
+/**
+ * Blocked CUDA kernel implementation algorithm Floyd Wharshall for APSP
+ * Independent phase 3
+ *
+ * @param blockId: Index of block
+ * @param nvertex: Number of all vertex in graph
+ * @param pitch: Length of row in memory
+ * @param graph: Array of graph with distance between vertex on device
+ * @param pred: Array of predecessors for a graph on device
+ */
+static __global__
+void _blocked_fw_independent_ph(const int blockId, size_t pitch, const int nvertex, int* const graph, int* const pred) {
+    if (blockIdx.x == blockId || blockIdx.y == blockId) return;
+
+    const int idx = threadIdx.x;
+    const int idy = threadIdx.y;
+
+    const int v1 = blockDim.y * blockIdx.y + idy;
+    const int v2 = blockDim.x * blockIdx.x + idx;
+
+    __shared__ int cacheGraphBaseRow[BLOCK_SIZE][BLOCK_SIZE];
+    __shared__ int cacheGraphBaseCol[BLOCK_SIZE][BLOCK_SIZE];
+    __shared__ int cachePredBaseCol[BLOCK_SIZE][BLOCK_SIZE];
+
+    int v1Row = BLOCK_SIZE * blockId + idy;
+    int v2Col = BLOCK_SIZE * blockId + idx;
+
+    // Load data for block
+
+    // ...
+
+    // Synchronize to make sure the all value are loaded in virtual block
+   __syncthreads();
+
+   // Compute data for block
+}
 
 /**
  * Allocate memory on device and copy memory from host to device
