@@ -304,8 +304,11 @@ void cudaBlockedFW(const std::unique_ptr<graphAPSPTopology>& dataHost) {
     int *graphDevice, *predDevice;
     size_t pitch = _cudaMoveMemoryToDevice(dataHost, &graphDevice, &predDevice);
 
-    dim3 gridDependedntPhase(1 ,1, 1);
-    dim3 blockDependentPhase(BLOCK_SIZE, BLOCK_SIZE, 1);
+    dim3 gridPhase1(1 ,1, 1);
+    dim3 gridPhase2((nvertex - 1) / BLOCK_SIZE + 1, 2 , 1);
+    dim3 gridPhase3((nvertex - 1) / BLOCK_SIZE + 1, 2 , 1);
+
+    dim3 dimBlockSize(BLOCK_SIZE, BLOCK_SIZE, 1);
 
     int numBlock = (nvertex - 1) / BLOCK_SIZE + 1;
 
@@ -319,10 +322,12 @@ void cudaBlockedFW(const std::unique_ptr<graphAPSPTopology>& dataHost) {
 
     for(int blockID = 0; blockID < numBlock; ++blockID) {
         // Start dependent phase
-        _blocked_fw_dependent_ph<<<gridDependedntPhase, blockDependentPhase>>>
+        _blocked_fw_dependent_ph<<<gridPhase1, dimBlockSize>>>
                 (blockID, pitch / sizeof(int), nvertex, graphDevice, predDevice);
 
         // Start partially dependent phase
+        _blocked_fw_partial_dependent_ph<<<gridPhase2, dimBlockSize>>>
+                (blockID, pitch / sizeof(int), nvertex, graphDevice, predDevice);
 
         // Start independent phase
     }
