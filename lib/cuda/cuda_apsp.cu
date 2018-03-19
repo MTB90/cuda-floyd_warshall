@@ -342,7 +342,7 @@ void cudaBlockedFW(const std::unique_ptr<graphAPSPTopology>& dataHost) {
 
     dim3 gridPhase1(1 ,1, 1);
     dim3 gridPhase2((nvertex - 1) / BLOCK_SIZE + 1, 2 , 1);
-    dim3 gridPhase3((nvertex - 1) / BLOCK_SIZE + 1, 2 , 1);
+    dim3 gridPhase3((nvertex - 1) / BLOCK_SIZE + 1, (nvertex - 1) / BLOCK_SIZE + 1 , 1);
 
     dim3 dimBlockSize(BLOCK_SIZE, BLOCK_SIZE, 1);
 
@@ -366,6 +366,8 @@ void cudaBlockedFW(const std::unique_ptr<graphAPSPTopology>& dataHost) {
                 (blockID, pitch / sizeof(int), nvertex, graphDevice, predDevice);
 
         // Start independent phase
+        _blocked_fw_independent_ph<<<gridPhase3, dimBlockSize>>>
+                (blockID, pitch / sizeof(int), nvertex, graphDevice, predDevice);
     }
 
     // Finish recording
