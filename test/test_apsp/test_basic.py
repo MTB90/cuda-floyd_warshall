@@ -39,6 +39,7 @@ class TestBasic(TestCase):
     def setUp(self):
         self.exec_path = self.MAKE_PATH / self.EXEC_NAME
         self.assertTrue(self.exec_path.exists(), f"Can't find executable {self.EXEC_NAME}")
+        self.algoritms = [APSP.NAIVE_FW, APSP.CUDA_NAIVE_FW, APSP.CUDA_BLOCKED_FW]
 
     def test_GIVEN_source_code_WHEN_compiling_THEN_compile_success(self):
         self.assertEqual(self.MAKE_PROCESS.returncode, 0)
@@ -46,62 +47,37 @@ class TestBasic(TestCase):
     def test_GIVEN_source_code_WHEN_compiling_THEN_no_error_message(self):
         self.assertFalse(bool(self.MAKE_PROCESS.stderr))
 
-    def test_GIVEN_graph_empty_WHEN_naive_fw_THEN_return_result_empty(self):
-        result, stderr = execute_algorithm(self.exec_path, APSP.NAIVE_FW, "0 0")
-        self.assertEqual(stderr, '')
-        self.assertEqual(result['graph'], [])
-        self.assertEqual(result['predecessors'], [])
+    def test_GIVEN_graph_empty_WHEN_fw_THEN_return_result_empty(self):
+        for algorithm in self.algoritms:
+            result, stderr = execute_algorithm(self.exec_path, algorithm, "0 0")
+            self.assertEqual(stderr, '')
+            self.assertEqual(result['graph'], [])
+            self.assertEqual(result['predecessors'], [])
 
-    def test_GIVEN_graph_k0_WHEN_naive_fw_THEN_return_k0_result_path(self):
-        data, stderr = execute_algorithm(self.exec_path, APSP.NAIVE_FW, f"{self.SIZE} 0")
-        self.assertEqual(stderr, '')
-        self.assertListEqual(data['graph'], gen_graph_out(self.SIZE, diagonal=0))
-        self.assertListEqual(data['predecessors'], gen_graph_out(self.SIZE, -1))
+    def test_GIVEN_graph_k0_WHEN_fw_THEN_return_k0_result_path(self):
+        for algorithm in self.algoritms:
+            data, stderr = execute_algorithm(self.exec_path, algorithm, f"{self.SIZE} 0")
+            self.assertEqual(stderr, '')
+            self.assertListEqual(data['graph'], gen_graph_out(self.SIZE, diagonal=0))
+            self.assertListEqual(data['predecessors'], gen_graph_out(self.SIZE, -1))
 
-    def test_GIVEN_graph_k1_WHEN_naive_fw_THEN_return_k1_result_path(self):
-        data, stderr = execute_algorithm(self.exec_path, APSP.NAIVE_FW, gen_k1_graph_in(self.SIZE))
-        self.assertEqual(stderr, '')
-        self.assertListEqual(data['graph'], gen_k1_graph_out(self.SIZE))
-        self.assertListEqual(data['predecessors'], gen_k1_predecessors_out(self.SIZE))
+    def test_GIVEN_graph_k1_WHEN_fw_THEN_return_k1_result_path(self):
+        for algorithm in self.algoritms:
+            data, stderr = execute_algorithm(self.exec_path, algorithm, gen_k1_graph_in(self.SIZE))
+            self.assertEqual(stderr, '')
+            self.assertListEqual(data['graph'], gen_k1_graph_out(self.SIZE))
+            self.assertListEqual(data['predecessors'], gen_k1_predecessors_out(self.SIZE))
 
-    def test_GIVEN_graph_kn_WHEN_naive_fw_THEN_return_kn_result_path(self):
-        data, stderr = execute_algorithm(self.exec_path, APSP.NAIVE_FW, gen_kn_graph_in(self.SIZE))
-        self.assertEqual(stderr, '')
-        self.assertListEqual(data['graph'], gen_graph_out(self.SIZE, 1, 0))
-        self.assertListEqual(data['predecessors'], gen_kn_predecessors_out(self.SIZE))
+    def test_GIVEN_graph_kn_WHEN_fw_THEN_return_kn_result_path(self):
+        for algorithm in self.algoritms:
+            data, stderr = execute_algorithm(self.exec_path, algorithm, gen_kn_graph_in(self.SIZE))
+            self.assertEqual(stderr, '')
+            self.assertListEqual(data['graph'], gen_graph_out(self.SIZE, 1, 0))
+            self.assertListEqual(data['predecessors'], gen_kn_predecessors_out(self.SIZE))
 
-    def test_GIVEN_graph_dicircle_WHEN_naive_fw_THEN_return_kn_correct_result_path(self):
-        data, stderr = execute_algorithm(self.exec_path, APSP.NAIVE_FW, gen_graph_dicircle_in(self.SIZE))
-        self.assertEqual(stderr, '')
-        self.assertListEqual(data['graph'], gen_kn_graph_for_dcircle_out(self.SIZE))
-        self.assertListEqual(data['predecessors'], gen_kn_pred_for_dcircle_out(self.SIZE))
-
-    def test_GIVEN_graph_empty_WHEN_cuda_naive_fw_THEN_return_result_empty(self):
-        result, stderr = execute_algorithm(self.exec_path, APSP.CUDA_NAIVE_FW, "0 0")
-        self.assertEqual(stderr, '')
-        self.assertEqual(result['graph'], [])
-        self.assertEqual(result['predecessors'], [])
-
-    def test_GIVEN_graph_k0_WHEN_cuda_naive_fw_THEN_return_k0_result_path(self):
-        data, stderr = execute_algorithm(self.exec_path, APSP.CUDA_NAIVE_FW, f"{self.SIZE} 0")
-        self.assertEqual(stderr, '')
-        self.assertListEqual(data['graph'], gen_graph_out(self.SIZE, diagonal=0))
-        self.assertListEqual(data['predecessors'], gen_graph_out(self.SIZE, -1))
-
-    def test_GIVEN_graph_k1_WHEN_cuda_naive_fw_THEN_return_k1_result_path(self):
-        data, stderr = execute_algorithm(self.exec_path, APSP.CUDA_NAIVE_FW, gen_k1_graph_in(self.SIZE))
-        self.assertEqual(stderr, '')
-        self.assertListEqual(data['graph'], gen_k1_graph_out(self.SIZE))
-        self.assertListEqual(data['predecessors'], gen_k1_predecessors_out(self.SIZE))
-
-    def test_GIVEN_graph_kn_WHEN_cuda_naive_fw_THEN_return_kn_result_path(self):
-        data, stderr = execute_algorithm(self.exec_path, APSP.CUDA_NAIVE_FW, gen_kn_graph_in(self.SIZE))
-        self.assertEqual(stderr, '')
-        self.assertListEqual(data['graph'], gen_graph_out(self.SIZE, 1, 0))
-        self.assertListEqual(data['predecessors'], gen_kn_predecessors_out(self.SIZE))
-
-    def test_GIVEN_graph_dicircle_WHEN_cuda_naive_fw_THEN_return_kn_correct_result_path(self):
-        data, stderr = execute_algorithm(self.exec_path, APSP.CUDA_NAIVE_FW, gen_graph_dicircle_in(self.SIZE))
-        self.assertEqual(stderr, '')
-        self.assertListEqual(data['graph'], gen_kn_graph_for_dcircle_out(self.SIZE))
-        self.assertListEqual(data['predecessors'], gen_kn_pred_for_dcircle_out(self.SIZE))
+    def test_GIVEN_graph_dicircle_WHENg_fw_THEN_return_kn_correct_result_path(self):
+        for algorithm in self.algoritms:
+            data, stderr = execute_algorithm(self.exec_path, algorithm, gen_graph_dicircle_in(self.SIZE))
+            self.assertEqual(stderr, '')
+            self.assertListEqual(data['graph'], gen_kn_graph_for_dcircle_out(self.SIZE))
+            self.assertListEqual(data['predecessors'], gen_kn_pred_for_dcircle_out(self.SIZE))
