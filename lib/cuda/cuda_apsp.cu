@@ -386,12 +386,12 @@ void cudaBlockedFW(const std::unique_ptr<graphAPSPTopology>& dataHost) {
     int numBlock = (nvertex - 1) / BLOCK_SIZE + 1;
 
     // Initialize CUDA Event
-    cudaEvent_t start,stop;
-    float elapsedTime;
+    // cudaEvent_t start,stop;
+    // float elapsedTime;
 
-    cudaEventCreate(&start);
-    cudaEventCreate(&stop);
-    cudaEventRecord(start,0);
+    // cudaEventCreate(&start);
+    // cudaEventCreate(&stop);
+    // cudaEventRecord(start,0);
 
     for(int blockID = 0; blockID < numBlock; ++blockID) {
         // Start dependent phase
@@ -408,14 +408,14 @@ void cudaBlockedFW(const std::unique_ptr<graphAPSPTopology>& dataHost) {
     }
 
     // Finish recording
-    cudaEventRecord(stop,0);
-    cudaEventSynchronize(stop);
+    // cudaEventRecord(stop,0);
+    // cudaEventSynchronize(stop);
 
     // Calculate elasped time
-    cudaEventElapsedTime(&elapsedTime,start,stop);
+    // cudaEventElapsedTime(&elapsedTime,start,stop);
 
-    elapsedTime /= 1000;
-    printf ("Time : %f s\n", elapsedTime);
+    // elapsedTime /= 1000;
+    //printf ("Time : %f s\n", elapsedTime);
 
     // Check for any errors launching the kernel
     HANDLE_ERROR(cudaGetLastError());
