@@ -75,7 +75,7 @@ class TestBasic(TestCase):
             self.assertListEqual(data['graph'], gen_graph_out(self.SIZE, 1, 0))
             self.assertListEqual(data['predecessors'], gen_kn_predecessors_out(self.SIZE))
 
-    def test_GIVEN_graph_dicircle_WHENg_fw_THEN_return_kn_correct_result_path(self):
+    def test_GIVEN_graph_dicircle_WHEN_fw_THEN_return_kn_correct_result_path(self):
         for algorithm in self.algoritms:
             data, stderr = execute_algorithm(self.exec_path, algorithm, gen_graph_dicircle_in(self.SIZE))
             self.assertEqual(stderr, '')
