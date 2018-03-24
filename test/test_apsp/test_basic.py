@@ -20,7 +20,7 @@ class TestBasic(TestCase):
     MAKE_PATH = None
     MAKE_PROCESS = None
     EXEC_NAME = 'cuda_floyd-warshall'
-    SIZE = 100
+    SIZE = 1000
 
     @classmethod
     def setUpClass(cls):
