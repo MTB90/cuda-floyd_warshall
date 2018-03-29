@@ -1,4 +1,4 @@
-Cuda Floyd Warshall implementation (Refactor in progress use release 2.1)
+Cuda Floyd Warshall implementation
 ===========================
 CUDA implementation of the Blocked Floyd-Warshall All pairs shortest path graph algorithm
 based on article:
@@ -50,6 +50,10 @@ based on article:
    <td> 12500</td><td> 3125000</td><td> 1269s</td><td> 125.5s</td><td> 10.11x</td></td><td> NA </td><td> NA </td>
  </tr>
 </table>
+
+#### Compile source:
+
+#### Run tests:
 
 <hr/>
 <b>Author: Mateusz Bojanowski</b>
