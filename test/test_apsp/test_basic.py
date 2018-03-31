@@ -99,3 +99,13 @@ class TestBasic(TestCase):
         for input_small in inputs_small.glob("*"):
             with input_small.open() as f:
                 self._compare_result_graph_from_two_algorithms(f.read(), APSP.NAIVE_FW, APSP.CUDA_BLOCKED_FW)
+
+    def test_GIVEN_one_big_graph_WHEN_compare_navie_fw_with_cuda_naive_fw_THEN_results_path_are_the_same(self):
+        big_graph = Path(os.path.dirname(os.path.abspath(__file__))) / '../../input/big/V1000-E150000'
+        with big_graph.open() as f:
+            self._compare_result_graph_from_two_algorithms(f.read(), APSP.NAIVE_FW, APSP.CUDA_NAIVE_FW)
+
+    def test_GIVEN_one_big_graph_WHEN_compare_navie_fw_with_cuda_blocked_fw_THEN_results_path_are_the_same(self):
+        big_graph = Path(os.path.dirname(os.path.abspath(__file__))) / '../../input/big/V1000-E150000'
+        with big_graph.open() as f:
+            self._compare_result_graph_from_two_algorithms(f.read(), APSP.NAIVE_FW, APSP.CUDA_BLOCKED_FW)
