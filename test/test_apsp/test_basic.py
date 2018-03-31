@@ -41,6 +41,12 @@ class TestBasic(TestCase):
         self.assertTrue(self.exec_path.exists(), f"Can't find executable {self.EXEC_NAME}")
         self.algorithms = [APSP.NAIVE_FW, APSP.CUDA_NAIVE_FW, APSP.CUDA_BLOCKED_FW]
 
+    def _compare_result_graph_from_two_algorithms(self, input_graph: str, first: str, second: str):
+        results = {}
+        for algorithm in [first, second]:
+            results[algorithm], stderr = execute_algorithm(self.exec_path, algorithm, input_graph)
+        self.assertListEqual(results[first]['graph'], results[second]['graph'])
+
     def test_GIVEN_source_code_WHEN_compiling_THEN_compile_success(self):
         self.assertEqual(self.MAKE_PROCESS.returncode, 0)
 
@@ -81,3 +87,15 @@ class TestBasic(TestCase):
             self.assertEqual(stderr, '')
             self.assertListEqual(data['graph'], gen_kn_graph_for_dcircle_out(self.SIZE))
             self.assertListEqual(data['predecessors'], gen_kn_pred_for_dcircle_out(self.SIZE))
+
+    def test_GIVEN_all_small_graphs_WHEN_compare_navie_fw_with_cuda_naive_fw_THEN_results_path_are_the_same(self):
+        inputs_small = Path(os.path.dirname(os.path.abspath(__file__))) / '../../input/small'
+        for input_small in inputs_small.glob("*"):
+            with input_small.open() as f:
+                self._compare_result_graph_from_two_algorithms(f.read(), APSP.NAIVE_FW, APSP.CUDA_NAIVE_FW)
+
+    def test_GIVEN_all_small_graphs_WHEN_compare_navie_fw_with_cuda_blocked_fw_THEN_results_path_are_the_same(self):
+        inputs_small = Path(os.path.dirname(os.path.abspath(__file__))) / '../../input/small'
+        for input_small in inputs_small.glob("*"):
+            with input_small.open() as f:
+                self._compare_result_graph_from_two_algorithms(f.read(), APSP.NAIVE_FW, APSP.CUDA_BLOCKED_FW)
