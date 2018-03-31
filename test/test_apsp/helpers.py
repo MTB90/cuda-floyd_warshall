@@ -54,7 +54,7 @@ def gen_k1_graph_out(size: int) -> List:
     return graph
 
 
-def gen_k1_graph_in(size):
+def gen_k1_graph_in(size: int) -> str:
     """ Generate K1 graph input
 
     :param size: size of graph
@@ -91,7 +91,7 @@ def gen_kn_predecessors_out(size: int) -> List:
     return graph
 
 
-def gen_kn_graph_in(size):
+def gen_kn_graph_in(size: int) -> str:
     """ Generate Kn graph input
 
     :param size: size of graph
@@ -104,7 +104,7 @@ def gen_kn_graph_in(size):
     return input_graph
 
 
-def gen_graph_dicircle_in(size):
+def gen_graph_dicircle_in(size: int) -> str:
     """ Generate one direction circle graph input
 
     :param size: size of graph
@@ -116,7 +116,7 @@ def gen_graph_dicircle_in(size):
     return input_graph
 
 
-def gen_kn_graph_for_dcircle_out(size):
+def gen_kn_graph_for_dcircle_out(size: int) -> List:
     """ Generate kn graph for direction circle graph
 
     :param size: size of graph
@@ -132,7 +132,7 @@ def gen_kn_graph_for_dcircle_out(size):
     return graph
 
 
-def gen_kn_pred_for_dcircle_out(size):
+def gen_kn_pred_for_dcircle_out(size: int) -> List:
     """ Generate kn pred for direction circle graph
 
     :param size: size of graph
