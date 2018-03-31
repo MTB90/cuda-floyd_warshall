@@ -52,8 +52,18 @@ based on article:
 </table>
 
 #### Compile source:
+<ol>
+  <li>Install make/nvcc</li>
+  <li>Update makefile with path to nvcc compiler</li>
+  <li>Run command: make all</li>
+</ol>
 
 #### Run tests:
+<ol>
+  <li>Install Python 3.6</li>
+  <li>Go to project directory</li>
+  <li>Run command: python3 -m unittest discover -s test -v</li>
+</ol>
 
 <hr/>
 <b>Author: Mateusz Bojanowski</b>
